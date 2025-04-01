@@ -9,6 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.example.asm_app_se06304.model.Budget;
 import com.example.asm_app_se06304.model.Expense;
 import com.example.asm_app_se06304.model.ExpenseCategory;
 
@@ -43,6 +44,16 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public static final String EXPENSE_DESCRIPTION_COL = "description";
     public static final String EXPENSE_AMOUNT_COL = "amount";
     public static final String EXPENSE_DATE_COL = "expense_date";
+
+    // Table for budgets
+    public static final String BUDGETS_TABLE = "Budgets";
+    public static final String BUDGET_ID_COL = "budget_id";
+    public static final String BUDGET_DESCRIPTION_COL = "description";
+    public static final String BUDGET_AMOUNT_COL = "amount";
+    public static final String BUDGET_CATEGORY_ID_COL = "category_id";
+    public static final String BUDGET_USER_ID_COL = "user_id";
+    private static final String BUDGET_DATETIME_COL = "budget_date";
+
 
     public DatabaseContext(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DB_VERSION);
@@ -95,6 +106,17 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
         db.execSQL(createExpensesTable);
 
+        // Creating the Budgets table
+        String createBudgetsTable = "CREATE TABLE " + BUDGETS_TABLE + " (" +
+                BUDGET_ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                BUDGET_USER_ID_COL + " INTEGER NOT NULL, " +
+                BUDGET_CATEGORY_ID_COL + " INTEGER NOT NULL, " +
+                BUDGET_DESCRIPTION_COL + " TEXT, " +
+                BUDGET_AMOUNT_COL + " DECIMAL(10, 2) NOT NULL, " +
+                BUDGET_DATETIME_COL + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " + // Add datetime
+                "FOREIGN KEY (" + BUDGET_USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
+                "FOREIGN KEY (" + BUDGET_CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
+        db.execSQL(createBudgetsTable);
         Log.d("DatabaseContext", "Database created with sample data");
     }
 
@@ -103,6 +125,9 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + EXPENSES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CATEGORIES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + USERS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + BUDGETS_TABLE);
+
+
         onCreate(db);
     }
 
@@ -160,6 +185,8 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return result;
     }
 
+
+
     // Lấy danh sách chi phí của người dùng
     public List<Expense> getAllExpenses(int userId) {
         List<Expense> expenses = new ArrayList<>();
@@ -187,6 +214,20 @@ public class DatabaseContext extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return expenses;
+    }
+
+
+    public double getTotalBudget(int userId) {
+        double totalBudget = 0;
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUM(" + BUDGET_AMOUNT_COL + ") FROM " + BUDGETS_TABLE + " WHERE " + BUDGET_USER_ID_COL + " = ?",
+                new String[]{String.valueOf(userId)});
+        if (cursor.moveToFirst()) {
+            totalBudget = cursor.getDouble(0); // Get the sum
+        }
+        cursor.close();
+        db.close();
+        return totalBudget;
     }
 
     // Lấy danh sách chi phí theo tháng và năm
@@ -220,6 +261,115 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.close();
         return expenses;
     }
+
+    public long addBudget(int userId, int categoryId, String description, double amount, String datetime) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Validate userId
+        Cursor userCursor = db.rawQuery("SELECT " + ID_COL + " FROM " + USERS_TABLE +
+                " WHERE " + ID_COL + " = ?", new String[]{String.valueOf(userId)});
+        if (!userCursor.moveToFirst()) {
+            userCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid userId: " + userId);
+            return -1;
+        }
+        userCursor.close();
+
+        // Validate categoryId
+        Cursor categoryCursor = db.rawQuery("SELECT " + CATEGORY_ID_COL + " FROM " + CATEGORIES_TABLE +
+                " WHERE " + CATEGORY_ID_COL + " = ?", new String[]{String.valueOf(categoryId)});
+        if (!categoryCursor.moveToFirst()) {
+            categoryCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid categoryId: " + categoryId);
+            return -1;
+        }
+        categoryCursor.close();
+
+        // Insert budget into Budgets table
+        ContentValues values = new ContentValues();
+        values.put(BUDGET_USER_ID_COL, userId);
+        values.put(BUDGET_CATEGORY_ID_COL, categoryId);
+        values.put(BUDGET_DESCRIPTION_COL, description);
+        values.put(BUDGET_AMOUNT_COL, amount);
+        values.put(BUDGET_DATETIME_COL, datetime);  // Store datetime
+
+        long id = db.insert(BUDGETS_TABLE, null, values);
+        if (id == -1) {
+            Log.e("DatabaseContext", "Failed to insert budget");
+        }
+        db.close();
+        return id;
+    }
+
+    public long updateBudget(long budgetId, int userId, int categoryId, String description, double amount) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Validate userId
+        Cursor userCursor = db.rawQuery("SELECT " + ID_COL + " FROM " + USERS_TABLE +
+                " WHERE " + ID_COL + " = ?", new String[]{String.valueOf(userId)});
+        if (!userCursor.moveToFirst()) {
+            userCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid userId: " + userId);
+            return -1;
+        }
+        userCursor.close();
+
+        // Validate categoryId
+        Cursor categoryCursor = db.rawQuery("SELECT " + CATEGORY_ID_COL + " FROM " + CATEGORIES_TABLE +
+                " WHERE " + CATEGORY_ID_COL + " = ?", new String[]{String.valueOf(categoryId)});
+        if (!categoryCursor.moveToFirst()) {
+            categoryCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid categoryId: " + categoryId);
+            return -1;
+        }
+        categoryCursor.close();
+
+        // Prepare values for update
+        ContentValues values = new ContentValues();
+        values.put(BUDGET_USER_ID_COL, userId);
+        values.put(BUDGET_CATEGORY_ID_COL, categoryId);
+        values.put(BUDGET_DESCRIPTION_COL, description);
+        values.put(BUDGET_AMOUNT_COL, amount);
+
+        // Update the budget in the Budgets table
+        long result = db.update(BUDGETS_TABLE, values, BUDGET_ID_COL + " = ?", new String[]{String.valueOf(budgetId)});
+        db.close();
+        return result;
+    }
+
+    public List<Budget> getAllBudgets(int userId) {
+        List<Budget> budgets = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT " + BUDGET_ID_COL + ", " + BUDGET_DESCRIPTION_COL + ", " + BUDGET_AMOUNT_COL +
+                ", " + BUDGET_CATEGORY_ID_COL +
+                " FROM " + BUDGETS_TABLE +
+                " WHERE " + BUDGET_USER_ID_COL + " = ?";
+
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId)});
+        if (cursor.moveToFirst()) {
+            do {
+                long id = cursor.getLong(0);
+                String description = cursor.getString(1);
+                double amount = cursor.getDouble(2);
+                int categoryId = cursor.getInt(3);
+                budgets.add(new Budget(description, amount, null, String.valueOf(categoryId))); // Assuming category name can be fetched separately
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return budgets;
+    }
+
+
+
+
+
+
+
 
     private int getColorForCategory(String categoryName) {
         switch (categoryName) {
