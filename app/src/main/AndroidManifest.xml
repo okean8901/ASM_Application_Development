@@ -16,7 +16,7 @@
         <activity android:name=".ForgotPasswordActivity"/>
         <activity android:name=".UpdatePasswordActivity"/>
         <activity android:name=".MainActivity"/>
-
+        <activity android:name=".MenuActivity"/>
 
 
         <activity

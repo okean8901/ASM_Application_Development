@@ -1,10 +1,19 @@
 package com.example.asm_app_se06304.DataBase;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
+
+import com.example.asm_app_se06304.model.Expense;
+import com.example.asm_app_se06304.model.ExpenseCategory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseContext extends SQLiteOpenHelper {
 
@@ -28,39 +37,12 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public static final String NAME = "name";
     public static final String DESCRIPTION = "description";
 
-    // Budgets table
-    public static final String BUDGETS_TABLE = "Budgets";
-    public static final String BUDGET_ID_COL = "budget_id";
-    public static final String AMOUNT_COL = "amount";
-    public static final String MONTH_COL = "month";
-    public static final String YEAR_COL = "year";
-
     // Expenses table
     public static final String EXPENSES_TABLE = "Expenses";
     public static final String EXPENSE_ID_COL = "expense_id";
     public static final String EXPENSE_DESCRIPTION_COL = "description";
     public static final String EXPENSE_AMOUNT_COL = "amount";
     public static final String EXPENSE_DATE_COL = "expense_date";
-
-    // RecurringExpenses table
-    public static final String RECURRING_EXPENSES_TABLE = "RecurringExpenses";
-    public static final String RECURRING_ID_COL = "recurring_id";
-    public static final String FREQUENCY_COL = "frequency";
-    public static final String START_DATE_COL = "start_date";
-    public static final String END_DATE_COL = "end_date";
-    public static final String LAST_GENERATED_COL = "last_generated";
-
-    // Notifications table
-    public static final String NOTIFICATIONS_TABLE = "Notifications";
-    public static final String NOTIFICATION_ID_COL = "notification_id";
-    public static final String MESSAGE_COL = "message";
-    public static final String IS_READ_COL = "is_read";
-
-    // Reports table
-    public static final String REPORTS_TABLE = "Reports";
-    public static final String REPORT_ID_COL = "report_id";
-    public static final String REPORT_NAME_COL = "report_name";
-    public static final String REPORT_DATA_COL = "report_data";
 
     public DatabaseContext(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DB_VERSION);
@@ -70,44 +52,40 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // Create Users table
         String createUsersTable = "CREATE TABLE " + USERS_TABLE + " (" +
-                ID_COL + " INTEGER PRIMARY KEY, " +
+                ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 USERNAME_COL + " VARCHAR(50) UNIQUE NOT NULL, " +
                 PASSWORD_COL + " VARCHAR(255) NOT NULL, " +
                 EMAIL_COL + " VARCHAR(100) UNIQUE NOT NULL, " +
                 PHONE_COL + " VARCHAR(10), " +
                 CREATED_AT_COL + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                 LAST_LOGIN_COL + " TIMESTAMP);";
-
         db.execSQL(createUsersTable);
+
+        // Thêm dữ liệu mẫu cho Users
+        db.execSQL("INSERT INTO " + USERS_TABLE + " (" + USERNAME_COL + ", " + PASSWORD_COL + ", " + EMAIL_COL + ") " +
+                "VALUES ('user1', 'password123', 'user1@example.com');");
 
         // Create Categories table
         String createCategoriesTable = "CREATE TABLE " + CATEGORIES_TABLE + " (" +
-                CATEGORY_ID_COL + " INTEGER PRIMARY KEY, " +
+                CATEGORY_ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 USER_ID_COL + " INTEGER, " +
                 NAME + " VARCHAR(50) NOT NULL, " +
                 DESCRIPTION + " TEXT, " +
                 "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
                 "UNIQUE(" + USER_ID_COL + ", " + NAME + "));";
-
         db.execSQL(createCategoriesTable);
 
-        // Create Budgets table
-        String createBudgetsTable = "CREATE TABLE " + BUDGETS_TABLE + " (" +
-                BUDGET_ID_COL + " INTEGER PRIMARY KEY, " +
-                USER_ID_COL + " INTEGER NOT NULL, " +
-                CATEGORY_ID_COL + " INTEGER NOT NULL, " +
-                AMOUNT_COL + " DECIMAL(10, 2) NOT NULL, " +
-                MONTH_COL + " INTEGER NOT NULL, " +
-                YEAR_COL + " INTEGER NOT NULL, " +
-                "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
-                "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "), " +
-                "UNIQUE(" + USER_ID_COL + ", " + CATEGORY_ID_COL + ", " + MONTH_COL + ", " + YEAR_COL + "));";
-
-        db.execSQL(createBudgetsTable);
+        // Thêm dữ liệu mẫu cho Categories (user_id = 1)
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Ăn uống', 'Chi phí ăn uống');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Di chuyển', 'Chi phí đi lại');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Giải trí', 'Chi phí giải trí');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Mua sắm', 'Chi phí mua sắm');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Nhà ở', 'Chi phí nhà ở');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Học phí', 'Chi phí học phí');");
 
         // Create Expenses table
         String createExpensesTable = "CREATE TABLE " + EXPENSES_TABLE + " (" +
-                EXPENSE_ID_COL + " INTEGER PRIMARY KEY, " +
+                EXPENSE_ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 USER_ID_COL + " INTEGER NOT NULL, " +
                 CATEGORY_ID_COL + " INTEGER NOT NULL, " +
                 EXPENSE_DESCRIPTION_COL + " TEXT, " +
@@ -115,62 +93,143 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 EXPENSE_DATE_COL + " DATE NOT NULL, " +
                 "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
                 "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
-
         db.execSQL(createExpensesTable);
 
-        // Create RecurringExpenses table
-        String createRecurringExpensesTable = "CREATE TABLE " + RECURRING_EXPENSES_TABLE + " (" +
-                RECURRING_ID_COL + " INTEGER PRIMARY KEY, " +
-                USER_ID_COL + " INTEGER NOT NULL, " +
-                CATEGORY_ID_COL + " INTEGER NOT NULL, " +
-                EXPENSE_DESCRIPTION_COL + " TEXT, " +
-                EXPENSE_AMOUNT_COL + " DECIMAL(10, 2) NOT NULL, " +
-                FREQUENCY_COL + " VARCHAR(20) NOT NULL, " +
-                START_DATE_COL + " DATE NOT NULL, " +
-                END_DATE_COL + " DATE, " +
-                LAST_GENERATED_COL + " DATE, " +
-                "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
-                "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
-
-        db.execSQL(createRecurringExpensesTable);
-
-        // Create Notifications table
-        String createNotificationsTable = "CREATE TABLE " + NOTIFICATIONS_TABLE + " (" +
-                NOTIFICATION_ID_COL + " INTEGER PRIMARY KEY, " +
-                USER_ID_COL + " INTEGER NOT NULL, " +
-                CATEGORY_ID_COL + " INTEGER, " +
-                MESSAGE_COL + " TEXT NOT NULL, " +
-                IS_READ_COL + " BOOLEAN DEFAULT FALSE, " +
-                "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
-                "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
-
-        db.execSQL(createNotificationsTable);
-
-        // Create Reports table
-        String createReportsTable = "CREATE TABLE " + REPORTS_TABLE + " (" +
-                REPORT_ID_COL + " INTEGER PRIMARY KEY, " +
-                USER_ID_COL + " INTEGER NOT NULL, " +
-                REPORT_NAME_COL + " VARCHAR(100) NOT NULL, " +
-                START_DATE_COL + " DATE NOT NULL, " +
-                END_DATE_COL + " DATE NOT NULL, " +
-                REPORT_DATA_COL + " TEXT, " +
-                "FOREIGN KEY (" + USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "));";
-
-        db.execSQL(createReportsTable);
+        Log.d("DatabaseContext", "Database created with sample data");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Drop tables if they exist
-        db.execSQL("DROP TABLE IF EXISTS " + REPORTS_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + NOTIFICATIONS_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + RECURRING_EXPENSES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + EXPENSES_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + BUDGETS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CATEGORIES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + USERS_TABLE);
-
-        // Create tables again
         onCreate(db);
+    }
+
+    // Thêm chi phí mới
+    public long addExpense(int userId, int categoryId, String description, double amount, String date) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Cursor userCursor = db.rawQuery("SELECT " + ID_COL + " FROM " + USERS_TABLE +
+                " WHERE " + ID_COL + " = ?", new String[]{String.valueOf(userId)});
+        if (!userCursor.moveToFirst()) {
+            userCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid userId: " + userId);
+            return -1;
+        }
+        userCursor.close();
+
+        Cursor categoryCursor = db.rawQuery("SELECT " + CATEGORY_ID_COL + " FROM " + CATEGORIES_TABLE +
+                " WHERE " + CATEGORY_ID_COL + " = ?", new String[]{String.valueOf(categoryId)});
+        if (!categoryCursor.moveToFirst()) {
+            categoryCursor.close();
+            db.close();
+            Log.e("DatabaseContext", "Invalid categoryId: " + categoryId);
+            return -1;
+        }
+        categoryCursor.close();
+
+        ContentValues values = new ContentValues();
+        values.put(USER_ID_COL, userId);
+        values.put(CATEGORY_ID_COL, categoryId);
+        values.put(EXPENSE_DESCRIPTION_COL, description);
+        values.put(EXPENSE_AMOUNT_COL, amount);
+        values.put(EXPENSE_DATE_COL, date);
+
+        long id = db.insert(EXPENSES_TABLE, null, values);
+        if (id == -1) {
+            Log.e("DatabaseContext", "Failed to insert expense");
+        }
+        db.close();
+        return id;
+    }
+
+    // Cập nhật chi phí
+    public long updateExpense(long expenseId, int userId, int categoryId, String description, double amount, String date) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(USER_ID_COL, userId);
+        values.put(CATEGORY_ID_COL, categoryId);
+        values.put(EXPENSE_DESCRIPTION_COL, description);
+        values.put(EXPENSE_AMOUNT_COL, amount);
+        values.put(EXPENSE_DATE_COL, date);
+
+        long result = db.update(EXPENSES_TABLE, values, EXPENSE_ID_COL + " = ?", new String[]{String.valueOf(expenseId)});
+        db.close();
+        return result;
+    }
+
+    // Lấy danh sách chi phí của người dùng
+    public List<Expense> getAllExpenses(int userId) {
+        List<Expense> expenses = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT e." + EXPENSE_ID_COL + ", e." + EXPENSE_DESCRIPTION_COL + ", e." + EXPENSE_AMOUNT_COL +
+                ", e." + EXPENSE_DATE_COL + ", c." + NAME +
+                ", e." + CATEGORY_ID_COL +
+                " FROM " + EXPENSES_TABLE + " e" +
+                " JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE e." + USER_ID_COL + " = ?" +
+                " ORDER BY e." + EXPENSE_DATE_COL + " DESC";
+
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId)});
+        if (cursor.moveToFirst()) {
+            do {
+                long id = cursor.getLong(0);
+                String description = cursor.getString(1);
+                double amount = cursor.getDouble(2);
+                String date = cursor.getString(3);
+                String categoryName = cursor.getString(4);
+                int categoryId = cursor.getInt(5);
+                expenses.add(new Expense(id, description, amount, date, categoryName, categoryId));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return expenses;
+    }
+
+    // Lấy danh sách chi phí theo tháng và năm
+    public List<ExpenseCategory> getExpensesByMonth(int userId, int month, int year) {
+        List<ExpenseCategory> expenses = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT c." + NAME + ", SUM(e." + EXPENSE_AMOUNT_COL + ")" +
+                " FROM " + EXPENSES_TABLE + " e" +
+                " JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE e." + USER_ID_COL + " = ?" +
+                " AND strftime('%m', e." + EXPENSE_DATE_COL + ") = ?" +
+                " AND strftime('%Y', e." + EXPENSE_DATE_COL + ") = ?" +
+                " GROUP BY c." + CATEGORY_ID_COL + ", c." + NAME;
+
+        Cursor cursor = db.rawQuery(query, new String[]{
+                String.valueOf(userId),
+                String.format("%02d", month),
+                String.valueOf(year)
+        });
+
+        if (cursor.moveToFirst()) {
+            do {
+                String categoryName = cursor.getString(0);
+                double totalAmount = cursor.getDouble(1);
+                int color = getColorForCategory(categoryName);
+                expenses.add(new ExpenseCategory(categoryName, totalAmount, color));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return expenses;
+    }
+
+    private int getColorForCategory(String categoryName) {
+        switch (categoryName) {
+            case "Ăn uống": return android.graphics.Color.BLUE;
+            case "Di chuyển": return android.graphics.Color.RED;
+            case "Giải trí": return android.graphics.Color.YELLOW;
+            case "Mua sắm": return android.graphics.Color.GREEN;
+            case "Nhà ở": return android.graphics.Color.MAGENTA;
+            case "Học phí": return android.graphics.Color.CYAN;
+            default: return android.graphics.Color.GRAY;
+        }
     }
 }
