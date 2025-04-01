@@ -80,7 +80,7 @@ public class LoginActivity extends AppCompatActivity {
             @SuppressLint("Range") String storedPasswordHash = cursor.getString(cursor.getColumnIndex(DatabaseContext.PASSWORD_COL));
             if (storedPasswordHash.equals(password)) { // You should use hashed passwords
                 // Successful login
-                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                Intent intent = new Intent(LoginActivity.this, MenuActivity.class);
                 startActivity(intent);
                 finish(); // Close Login Activity
             } else {
