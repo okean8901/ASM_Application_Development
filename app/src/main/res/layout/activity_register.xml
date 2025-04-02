@@ -148,7 +148,7 @@
                     app:cornerRadius="12dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:backgroundTint="#006DC4"
+                    android:backgroundTint="#0398F4"
                     android:textColor="#FFFFFF"
                     app:layout_constraintTop_toBottomOf="@id/tilRegisterEmail" />
                 <LinearLayout
