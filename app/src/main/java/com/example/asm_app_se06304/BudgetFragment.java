@@ -30,6 +30,7 @@ import java.util.Map;
 public class BudgetFragment extends Fragment {
 
     private EditText etDescription, etAmount, etDate;
+    private Spinner spinnerCategory;
     private Button btnSave;
     private DatabaseContext db;
     private int userId = 1; // Assume userId, replace with actual logic
@@ -71,6 +72,7 @@ public class BudgetFragment extends Fragment {
         etDescription = view.findViewById(R.id.et_budgetdescription); // Updated ID
         etAmount = view.findViewById(R.id.et_budgetamount); // Updated ID
         etDate = view.findViewById(R.id.et_budgetdate); // Updated ID
+        spinnerCategory = view.findViewById(R.id.spinner_budgetcategory); // Correct ID
         btnSave = view.findViewById(R.id.btn_budgetsave); // Updated ID
         db = new DatabaseContext(requireActivity());
         categoryMap = new HashMap<>();
@@ -124,7 +126,10 @@ public class BudgetFragment extends Fragment {
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireActivity(),
                 android.R.layout.simple_spinner_item, categories);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
+        spinnerCategory.setAdapter(categoryAdapter);
+        if (selectedCategoryId != -1) {
+            spinnerCategory.setSelection(selectedPosition);
+        }
     }
 
     private void showDatePicker() {
@@ -146,7 +151,7 @@ public class BudgetFragment extends Fragment {
         String description = etDescription.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String date = etDate.getText().toString().trim();
-
+        String category = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
             Toast.makeText(requireActivity(), "Please fill in all fields", Toast.LENGTH_SHORT).show();
@@ -171,13 +176,17 @@ public class BudgetFragment extends Fragment {
             return;
         }
 
-
+        Integer categoryId = categoryMap.get(category);
+        if (categoryId == null) {
+            Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         long result;
         if (budgetId == -1) {
-            result = db.addBudget(userId, description, amount, date);
+            result = db.addBudget(userId, categoryId, description, amount, date);
         } else {
-            result = db.updateBudget(budgetId, userId,description, amount);
+            result = db.updateBudget(budgetId, userId, categoryId, description, amount);
         }
 
         if (result != -1) {
@@ -189,7 +198,7 @@ public class BudgetFragment extends Fragment {
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
             Toast.makeText(requireActivity(), "Error saving budget", Toast.LENGTH_SHORT).show();
-            Log.e("BudgetFragment", "Failed to save budget: userId=" + userId );
+            Log.e("BudgetFragment", "Failed to save budget: userId=" + userId + ", categoryId=" + categoryId);
         }
     }
 
@@ -197,5 +206,6 @@ public class BudgetFragment extends Fragment {
         etDescription.setText("");
         etAmount.setText("");
         etDate.setText("");
+        spinnerCategory.setSelection(0);
     }
 }
