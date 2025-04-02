@@ -33,7 +33,7 @@ public class HomeFragment extends Fragment {
     private int userId = 1; // Giả định userId
     private ExpenseCategoryAdapter adapter;
     private List<ExpenseCategory> expenseCategories;
-    private final double TOTAL_BUDGET = 20_000_000; // Giả định ngân sách cố định
+    private final double TOTAL_BUDGET = 0; // Giả định ngân sách cố định
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
