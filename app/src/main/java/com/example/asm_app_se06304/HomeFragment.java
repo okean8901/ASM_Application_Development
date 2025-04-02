@@ -110,9 +110,20 @@ public class HomeFragment extends Fragment {
             }
         });
 
+
+
+        // Lắng nghe kết quả từ BudgetFragment
+        getParentFragmentManager().setFragmentResultListener("requestKey", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                if (result.getBoolean("budget_added", false)) {
+                    loadExpenses();
+                }
+            }
+        });
+
         // Tải dữ liệu ban đầu
         loadExpenses();
-
         return view;
     }
 
@@ -137,20 +148,25 @@ public class HomeFragment extends Fragment {
         int month = Integer.parseInt(spinnerMonth.getSelectedItem().toString());
         int year = Integer.parseInt(spinnerYear.getSelectedItem().toString());
 
+        // Load expenses
         expenseCategories = db.getExpensesByMonth(userId, month, year);
         adapter.updateCategories(expenseCategories);
 
-        // Tính toán ngân sách
+        // Calculate total spent
         double totalSpent = 0;
         for (ExpenseCategory category : expenseCategories) {
             totalSpent += category.getTotalAmount();
         }
-        double remainingBudget = TOTAL_BUDGET - totalSpent;
-        double budgetPercentage = (totalSpent / TOTAL_BUDGET) * 100;
 
-        // Cập nhật TextView
+        // Get total budget from the database
+        double totalBudget = db.getTotalBudget(userId); // Get total budget from the database
+        double remainingBudget = totalBudget - totalSpent;
+        double budgetPercentage = (totalSpent / totalBudget) * 100;
+
+
+        // Update TextViews
         DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
-        tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(TOTAL_BUDGET));
+        tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(totalBudget));
         tvTotalSpent.setText("Tổng chi tiêu: " + formatter.format(totalSpent));
         tvRemainingBudget.setText("Ngân sách còn lại: " + formatter.format(remainingBudget));
         tvBudgetPercentage.setText(String.format("%.2f%% ngân sách đã sử dụng", budgetPercentage));

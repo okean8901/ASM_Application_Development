@@ -11,9 +11,43 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="budget page"
+        android:text="Budget page"
         android:textSize="24dp"
         android:textStyle="bold"
         android:layout_gravity="center_horizontal"/>
+    <EditText
+        android:id="@+id/et_budgetdescription"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Mô tả (ví dụ: Tiền thuê nhà)"
+        android:padding="10dp"
+        android:layout_marginBottom="16dp"/>
 
+    <EditText
+        android:id="@+id/et_budgetamount"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Số tiền (VNĐ)"
+        android:inputType="numberDecimal"
+        android:padding="10dp"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/et_budgetdate"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Ngày (nhấn để chọn)"
+        android:focusable="false"
+        android:layout_marginBottom="20dp"/>
+
+
+
+    <Button
+        android:id="@+id/btn_budgetsave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Lưu thu nhập"
+        android:backgroundTint="#00008B"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"/>
 </LinearLayout>
