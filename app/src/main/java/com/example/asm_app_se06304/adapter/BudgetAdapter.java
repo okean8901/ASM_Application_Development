@@ -41,7 +41,6 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
         holder.tvDescription.setText(budget.getDescription());
         holder.tvAmount.setText(String.format("%,.2f VND", budget.getAmount()));
         holder.tvDate.setText(budget.getDate());
-        holder.tvCategory.setText(budget.getCategory());
         holder.btnEdit.setOnClickListener(v -> listener.onEditClick(budget));
     }
 
@@ -56,7 +55,7 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
     }
 
     static class BudgetViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDescription, tvAmount, tvDate, tvCategory;
+        TextView tvDescription, tvAmount, tvDate;
         Button btnEdit;
 
         public BudgetViewHolder(@NonNull View itemView) {
@@ -64,7 +63,6 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
             tvDescription = itemView.findViewById(R.id.tv_Budgetdescription);
             tvAmount = itemView.findViewById(R.id.tv_Budgetamount);
             tvDate = itemView.findViewById(R.id.tv_Budgetdate);
-            tvCategory = itemView.findViewById(R.id.tv_Budgetcategory);
             btnEdit = itemView.findViewById(R.id.btn_edit);
         }
     }

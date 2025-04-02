@@ -50,7 +50,6 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public static final String BUDGET_ID_COL = "budget_id";
     public static final String BUDGET_DESCRIPTION_COL = "description";
     public static final String BUDGET_AMOUNT_COL = "amount";
-    public static final String BUDGET_CATEGORY_ID_COL = "category_id";
     public static final String BUDGET_USER_ID_COL = "user_id";
     private static final String BUDGET_DATETIME_COL = "budget_date";
 
@@ -110,12 +109,10 @@ public class DatabaseContext extends SQLiteOpenHelper {
         String createBudgetsTable = "CREATE TABLE " + BUDGETS_TABLE + " (" +
                 BUDGET_ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 BUDGET_USER_ID_COL + " INTEGER NOT NULL, " +
-                BUDGET_CATEGORY_ID_COL + " INTEGER NOT NULL, " +
                 BUDGET_DESCRIPTION_COL + " TEXT, " +
                 BUDGET_AMOUNT_COL + " DECIMAL(10, 2) NOT NULL, " +
                 BUDGET_DATETIME_COL + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " + // Add datetime
-                "FOREIGN KEY (" + BUDGET_USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
-                "FOREIGN KEY (" + BUDGET_CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
+                "FOREIGN KEY (" + BUDGET_USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "))";
         db.execSQL(createBudgetsTable);
         Log.d("DatabaseContext", "Database created with sample data");
     }
@@ -262,7 +259,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return expenses;
     }
 
-    public long addBudget(int userId, int categoryId, String description, double amount, String datetime) {
+    public long addBudget(int userId,String description, double amount, String datetime) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         // Validate userId
@@ -276,21 +273,9 @@ public class DatabaseContext extends SQLiteOpenHelper {
         }
         userCursor.close();
 
-        // Validate categoryId
-        Cursor categoryCursor = db.rawQuery("SELECT " + CATEGORY_ID_COL + " FROM " + CATEGORIES_TABLE +
-                " WHERE " + CATEGORY_ID_COL + " = ?", new String[]{String.valueOf(categoryId)});
-        if (!categoryCursor.moveToFirst()) {
-            categoryCursor.close();
-            db.close();
-            Log.e("DatabaseContext", "Invalid categoryId: " + categoryId);
-            return -1;
-        }
-        categoryCursor.close();
-
         // Insert budget into Budgets table
         ContentValues values = new ContentValues();
         values.put(BUDGET_USER_ID_COL, userId);
-        values.put(BUDGET_CATEGORY_ID_COL, categoryId);
         values.put(BUDGET_DESCRIPTION_COL, description);
         values.put(BUDGET_AMOUNT_COL, amount);
         values.put(BUDGET_DATETIME_COL, datetime);  // Store datetime
@@ -303,7 +288,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return id;
     }
 
-    public long updateBudget(long budgetId, int userId, int categoryId, String description, double amount) {
+    public long updateBudget(long budgetId, int userId, String description, double amount) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         // Validate userId
@@ -317,21 +302,9 @@ public class DatabaseContext extends SQLiteOpenHelper {
         }
         userCursor.close();
 
-        // Validate categoryId
-        Cursor categoryCursor = db.rawQuery("SELECT " + CATEGORY_ID_COL + " FROM " + CATEGORIES_TABLE +
-                " WHERE " + CATEGORY_ID_COL + " = ?", new String[]{String.valueOf(categoryId)});
-        if (!categoryCursor.moveToFirst()) {
-            categoryCursor.close();
-            db.close();
-            Log.e("DatabaseContext", "Invalid categoryId: " + categoryId);
-            return -1;
-        }
-        categoryCursor.close();
-
         // Prepare values for update
         ContentValues values = new ContentValues();
         values.put(BUDGET_USER_ID_COL, userId);
-        values.put(BUDGET_CATEGORY_ID_COL, categoryId);
         values.put(BUDGET_DESCRIPTION_COL, description);
         values.put(BUDGET_AMOUNT_COL, amount);
 
@@ -345,7 +318,6 @@ public class DatabaseContext extends SQLiteOpenHelper {
         List<Budget> budgets = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT " + BUDGET_ID_COL + ", " + BUDGET_DESCRIPTION_COL + ", " + BUDGET_AMOUNT_COL +
-                ", " + BUDGET_CATEGORY_ID_COL +
                 " FROM " + BUDGETS_TABLE +
                 " WHERE " + BUDGET_USER_ID_COL + " = ?";
 
