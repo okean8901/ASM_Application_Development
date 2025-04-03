@@ -47,6 +47,8 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
         Menu menu = navigationView.getMenu();
         MenuItem logout = menu.findItem(R.id.nav_logout);
+        MenuItem export = menu.findItem(R.id.nav_export_report);
+
 
         setupViewPager();
 
@@ -61,6 +63,17 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                 return false;
             }
         });
+
+        export.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(@NonNull MenuItem menuItem) {
+                Intent intentExport = new Intent(MenuActivity.this, ExportPdfActivity.class);
+                startActivity(intentExport);
+                return false;
+            }
+        });
+
+
 
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override

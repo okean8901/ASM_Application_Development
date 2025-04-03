@@ -10,7 +10,7 @@
         android:id="@+id/tv_Budgetdescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Mô tả"
+        android:text="Description"
         android:textSize="16sp"
         android:textStyle="bold"/>
 
@@ -18,7 +18,7 @@
         android:id="@+id/tv_Budgetamount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Số tiền"
+        android:text="Amount"
         android:textSize="14sp"
         android:textColor="#666666"/>
 
@@ -27,14 +27,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
-        android:text="Ngày"
+        android:text="Date"
         android:textColor="#666666"/>
 
     <TextView
         android:id="@+id/tv_Budgetcategory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Danh mục"
+        android:text="Category"
         android:textSize="14sp"
         android:textColor="#666666"/>
 
@@ -42,5 +42,5 @@
         android:id="@+id/btn_edit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Chỉnh sửa" />
+        android:text="Edit" />
 </LinearLayout>

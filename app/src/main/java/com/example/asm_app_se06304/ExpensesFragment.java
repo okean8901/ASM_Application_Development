@@ -122,12 +122,12 @@ public class ExpensesFragment extends Fragment {
             } while (cursor.moveToNext());
         } else {
             Log.w("ExpensesFragment", "No categories found in database, using default list");
-            String[] defaultCategories = {"Ăn uống", "Di chuyển", "Giải trí", "Mua sắm", "Nhà ở", "Học phí"};
+            String[] defaultCategories = {"Food", "Transportation", "Entertainment", "Shopping", "Housing", "Tuition"};
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
                 categoryMap.put(defaultCategories[i], i + 1);
             }
-            Toast.makeText(requireActivity(), "Không tìm thấy danh mục trong database, dùng danh sách mặc định", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireActivity(), "No categories found in the database, using default list.", Toast.LENGTH_LONG).show();
         }
         cursor.close();
         dbReadable.close();
@@ -163,13 +163,13 @@ public class ExpensesFragment extends Fragment {
         String category = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
-            Toast.makeText(requireActivity(), "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Please fill in all the information", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // Kiểm tra định dạng ngày (YYYY-MM-DD)
         if (!date.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            Toast.makeText(requireActivity(), "Ngày không đúng định dạng (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "The date format is incorrect (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -177,17 +177,17 @@ public class ExpensesFragment extends Fragment {
         try {
             amount = Double.parseDouble(amountStr);
             if (amount < 0) {
-                Toast.makeText(requireActivity(), "Số tiền không được âm", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireActivity(), "The amount cannot be negative", Toast.LENGTH_SHORT).show();
                 return;
             }
         } catch (NumberFormatException e) {
-            Toast.makeText(requireActivity(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Invalid Amount", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Integer categoryId = categoryMap.get(category);
         if (categoryId == null) {
-            Toast.makeText(requireActivity(), "Danh mục không hợp lệ", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Invalid Category", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -199,14 +199,14 @@ public class ExpensesFragment extends Fragment {
         }
 
         if (result != -1) {
-            Toast.makeText(requireActivity(), expenseId == -1 ? "Đã thêm chi phí" : "Đã cập nhật chi phí", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), expenseId == -1 ? "Expense Added" : "Expense Updated", Toast.LENGTH_SHORT).show();
             clearInputs();
             Bundle bundle = new Bundle();
             bundle.putBoolean("expense_added", true);
             getParentFragmentManager().setFragmentResult("requestKey", bundle);
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
-            Toast.makeText(requireActivity(), "Lỗi khi lưu chi phí", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Error saving the expense.", Toast.LENGTH_SHORT).show();
             Log.e("ExpensesFragment", "Failed to save expense: userId=" + userId + ", categoryId=" + categoryId);
         }
     }

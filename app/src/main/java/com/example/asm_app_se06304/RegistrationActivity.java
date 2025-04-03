@@ -64,13 +64,13 @@ public class RegistrationActivity extends AppCompatActivity {
         // Validate inputs
         if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password) ||
                 TextUtils.isEmpty(email) || TextUtils.isEmpty(phone)) {
-            Toast.makeText(this, "Vui lòng điền đầy đủ thông tin!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please fill in all the required information!", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // Check if username already exists
         if (userDb.isUsernameExists(username)) {
-            Toast.makeText(this, "Tên đăng nhập đã tồn tại!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Username already exists!", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -78,13 +78,13 @@ public class RegistrationActivity extends AppCompatActivity {
         long userId = userDb.insertUser(username, password, email, phone);
 
         if (userId != -1) {
-            Toast.makeText(this, "Đăng ký thành công", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Registration successful!", Toast.LENGTH_SHORT).show();
             // Navigate to Login Activity
             Intent intent = new Intent(RegistrationActivity.this, LoginActivity.class);
             startActivity(intent);
             finish(); // Close Registration Activity
         } else {
-            Toast.makeText(this, "Đăng ký không thành công, vui lòng thử lại!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Registration unsuccessful, please try again!", Toast.LENGTH_SHORT).show();
         }
     }
 

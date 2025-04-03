@@ -149,9 +149,9 @@ public class HomeFragment extends Fragment {
         double budgetPercentage = totalBudget == 0 ? 0 : (totalSpent / totalBudget) * 100;
 
         DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
-        tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(totalBudget));
-        tvTotalSpent.setText("Tổng chi tiêu: " + formatter.format(totalSpent));
-        tvRemainingBudget.setText("Ngân sách còn lại: " + formatter.format(remainingBudget));
-        tvBudgetPercentage.setText(String.format("%.2f%% ngân sách đã sử dụng", budgetPercentage));
+        tvTotalBudget.setText("Total budget: " + formatter.format(totalBudget));
+        tvTotalSpent.setText("Total expense: " + formatter.format(totalSpent));
+        tvRemainingBudget.setText("Remaining budget: " + formatter.format(remainingBudget));
+        tvBudgetPercentage.setText(String.format("%.2f%% Used budget", budgetPercentage));
     }
 }
