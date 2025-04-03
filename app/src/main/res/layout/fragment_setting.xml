@@ -5,7 +5,8 @@
     android:layout_height="match_parent"
     tools:context=".SettingFragment"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="10dp"
+    android:background="@drawable/gradient_backgound_2">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
