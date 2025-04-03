@@ -32,7 +32,6 @@ android {
 }
 
 dependencies {
-
     implementation libs.appcompat
     implementation libs.material
     implementation libs.constraintlayout
@@ -42,4 +41,6 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
     implementation 'com.squareup.picasso:picasso:2.8'
+    implementation 'com.itextpdf:itextg:5.5.10'
+    implementation 'com.karumi:dexter:6.2.3'
 }

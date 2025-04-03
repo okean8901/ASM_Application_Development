@@ -376,4 +376,19 @@ public class DatabaseContext extends SQLiteOpenHelper {
             default: return android.graphics.Color.GRAY;
         }
     }
+
+
+    public List<String> getBudgetChanges(String startDate, String endDate) {
+        List<String> changes = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT category_id, description, amount, budget_date FROM Budgets WHERE budget_date BETWEEN ? AND ?",
+                new String[]{startDate, endDate});
+
+        while (cursor.moveToNext()) {
+            changes.add(cursor.getString(3) + " - " + cursor.getString(1) + ": " + cursor.getDouble(2) + " VND");
+        }
+        cursor.close();
+        db.close();
+        return changes;
+    }
 }
