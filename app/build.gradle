@@ -42,5 +42,6 @@ dependencies {
     androidTestImplementation libs.espresso.core
     implementation 'com.squareup.picasso:picasso:2.8'
     implementation 'com.itextpdf:itextg:5.5.10'
+    implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'com.karumi:dexter:6.2.3'
 }

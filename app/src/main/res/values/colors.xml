@@ -5,4 +5,6 @@
     <color name="budget_positive">#4CAF50</color>
     <color name="budget_warning">#FFC107</color>
     <color name="budget_negative">#F44336</color>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorAccent">#03e9f4</color>
 </resources>

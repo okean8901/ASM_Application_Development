@@ -20,7 +20,7 @@
         android:id="@+id/et_description"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Mô tả (ví dụ: Tiền thuê nhà)"
+        android:hint="Description (e.g., Rent)"
         android:padding="10dp"
         android:layout_marginBottom="10dp"/>
 
@@ -28,7 +28,7 @@
         android:id="@+id/et_amount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Số tiền (VNĐ)"
+        android:hint="Amount (VND)"
         android:inputType="numberDecimal"
         android:padding="10dp"
         android:layout_marginBottom="10dp"/>
@@ -37,7 +37,7 @@
         android:id="@+id/et_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ngày (nhấn để chọn)"
+        android:hint="Date (click to select)"
         android:padding="10dp"
         android:focusable="false"
         android:layout_marginBottom="10dp"/>
@@ -52,7 +52,7 @@
         android:id="@+id/btn_save"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lưu chi phí"
+        android:text="Save expense"
         android:backgroundTint="#00008B"
         android:textColor="#FFFFFF"
         android:padding="10dp"/>
