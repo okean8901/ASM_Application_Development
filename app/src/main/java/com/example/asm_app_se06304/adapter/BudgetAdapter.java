@@ -41,7 +41,7 @@ public class BudgetAdapter extends RecyclerView.Adapter<BudgetAdapter.BudgetView
         holder.tvDescription.setText(budget.getDescription());
         holder.tvAmount.setText(String.format("%,.2f VND", budget.getAmount()));
         holder.tvDate.setText(budget.getDate());
-        holder.tvCategory.setText(budget.getCategory());
+        holder.tvCategory.setText(budget.getBudgetId());
         holder.btnEdit.setOnClickListener(v -> listener.onEditClick(budget));
     }
 

@@ -5,7 +5,9 @@
     android:layout_height="match_parent"
     tools:context=".BudgetFragment"
     android:padding="10dp"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:id="@+id/fragment_container"
+    android:background="#F5F5F5">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView

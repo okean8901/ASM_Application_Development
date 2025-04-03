@@ -344,24 +344,41 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public List<Budget> getAllBudgets(int userId) {
         List<Budget> budgets = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT " + BUDGET_ID_COL + ", " + BUDGET_DESCRIPTION_COL + ", " + BUDGET_AMOUNT_COL +
-                ", " + BUDGET_CATEGORY_ID_COL +
+        String query = "SELECT " + BUDGET_ID_COL + ", " + BUDGET_DESCRIPTION_COL + ", " + BUDGET_AMOUNT_COL + ", " + BUDGET_DATETIME_COL +
                 " FROM " + BUDGETS_TABLE +
                 " WHERE " + BUDGET_USER_ID_COL + " = ?";
 
         Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId)});
+        Log.d("DatabaseContext", "getAllBudgets: Cursor count = " + cursor.getCount());
         if (cursor.moveToFirst()) {
             do {
                 long id = cursor.getLong(0);
                 String description = cursor.getString(1);
                 double amount = cursor.getDouble(2);
-                int categoryId = cursor.getInt(3);
-                budgets.add(new Budget(description, amount, null, String.valueOf(categoryId))); // Assuming category name can be fetched separately
+                String date = cursor.getString(3);
+                String budgetId = String.valueOf(id);
+                Log.d("DatabaseContext", "Budget: id=" + id + ", desc=" + description + ", amount=" + amount + ", date=" + date);
+                budgets.add(new Budget(description, amount, date, budgetId));
             } while (cursor.moveToNext());
+        } else {
+            Log.d("DatabaseContext", "No budgets found for userId=" + userId);
         }
         cursor.close();
         db.close();
         return budgets;
+    }
+    public long deleteExpense(long expenseId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long result = db.delete(EXPENSES_TABLE, EXPENSE_ID_COL + " = ?", new String[]{String.valueOf(expenseId)});
+        db.close();
+        return result;
+    }
+
+    public long deleteBudget(long budgetId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long result = db.delete(BUDGETS_TABLE, BUDGET_ID_COL + " = ?", new String[]{String.valueOf(budgetId)});
+        db.close();
+        return result;
     }
 
 

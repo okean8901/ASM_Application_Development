@@ -28,12 +28,11 @@ public class HomeFragment extends Fragment {
 
     private ListView listExpenseCategories;
     private Spinner spinnerMonth, spinnerYear;
-    private TextView tvTotalBudget, tvTotalSpent, tvRemainingBudget, tvBudgetPercentage;
+    private TextView tvTotalBudget, tvTotalSpent, tvRemainingBudget, tvBudgetPercentage, tvSeeAll;
     private DatabaseContext db;
-    private int userId = 1; // Giả định userId
+    private int userId = 1;
     private ExpenseCategoryAdapter adapter;
     private List<ExpenseCategory> expenseCategories;
-    private final double TOTAL_BUDGET = 0; // Giả định ngân sách cố định
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,7 +46,6 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-        // Khởi tạo views
         listExpenseCategories = view.findViewById(R.id.list_expense_categories);
         spinnerMonth = view.findViewById(R.id.spinner_month);
         spinnerYear = view.findViewById(R.id.spinner_year);
@@ -55,29 +53,25 @@ public class HomeFragment extends Fragment {
         tvTotalSpent = view.findViewById(R.id.tv_total_spent);
         tvRemainingBudget = view.findViewById(R.id.tv_remaining_budget);
         tvBudgetPercentage = view.findViewById(R.id.tv_budget_percentage);
+        tvSeeAll = view.findViewById(R.id.see_all_button); // Thêm dòng này
 
-        // Thiết lập adapter cho ListView
         adapter = new ExpenseCategoryAdapter(requireActivity(), expenseCategories);
         listExpenseCategories.setAdapter(adapter);
 
-        // Thiết lập Spinner tháng
         ArrayAdapter<String> monthAdapter = new ArrayAdapter<>(requireActivity(),
                 android.R.layout.simple_spinner_item, getMonths());
         monthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerMonth.setAdapter(monthAdapter);
 
-        // Thiết lập Spinner năm
         ArrayAdapter<String> yearAdapter = new ArrayAdapter<>(requireActivity(),
                 android.R.layout.simple_spinner_item, getYears());
         yearAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerYear.setAdapter(yearAdapter);
 
-        // Thiết lập tháng và năm hiện tại
         Calendar calendar = Calendar.getInstance();
         spinnerMonth.setSelection(calendar.get(Calendar.MONTH));
         spinnerYear.setSelection(getYears().indexOf(String.valueOf(calendar.get(Calendar.YEAR))));
 
-        // Lắng nghe sự kiện chọn tháng/năm
         spinnerMonth.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -85,8 +79,7 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
 
         spinnerYear.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -96,33 +89,28 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // Lắng nghe kết quả từ ExpensesFragment
         getParentFragmentManager().setFragmentResultListener("requestKey", this, new FragmentResultListener() {
             @Override
             public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                if (result.getBoolean("expense_added", false)) {
+                if (result.getBoolean("expense_added", false) || result.getBoolean("budget_added", false)) {
                     loadExpenses();
                 }
             }
         });
 
-
-
-        // Lắng nghe kết quả từ BudgetFragment
-        getParentFragmentManager().setFragmentResultListener("requestKey", this, new FragmentResultListener() {
-            @Override
-            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                if (result.getBoolean("budget_added", false)) {
-                    loadExpenses();
-                }
-            }
+        // Xử lý sự kiện nhấn "See All"
+        tvSeeAll.setOnClickListener(v -> {
+            TransactionListFragment fragment = new TransactionListFragment();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .addToBackStack(null)
+                    .commit();
         });
 
-        // Tải dữ liệu ban đầu
         loadExpenses();
         return view;
     }
@@ -148,23 +136,18 @@ public class HomeFragment extends Fragment {
         int month = Integer.parseInt(spinnerMonth.getSelectedItem().toString());
         int year = Integer.parseInt(spinnerYear.getSelectedItem().toString());
 
-        // Load expenses
         expenseCategories = db.getExpensesByMonth(userId, month, year);
         adapter.updateCategories(expenseCategories);
 
-        // Calculate total spent
         double totalSpent = 0;
         for (ExpenseCategory category : expenseCategories) {
             totalSpent += category.getTotalAmount();
         }
 
-        // Get total budget from the database
-        double totalBudget = db.getTotalBudget(userId); // Get total budget from the database
+        double totalBudget = db.getTotalBudget(userId);
         double remainingBudget = totalBudget - totalSpent;
-        double budgetPercentage = (totalSpent / totalBudget) * 100;
+        double budgetPercentage = totalBudget == 0 ? 0 : (totalSpent / totalBudget) * 100;
 
-
-        // Update TextViews
         DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
         tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(totalBudget));
         tvTotalSpent.setText("Tổng chi tiêu: " + formatter.format(totalSpent));
