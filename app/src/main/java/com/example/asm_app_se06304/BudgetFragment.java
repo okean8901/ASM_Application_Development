@@ -33,9 +33,9 @@ public class BudgetFragment extends Fragment {
     private Spinner spinnerCategory;
     private Button btnSave;
     private DatabaseContext db;
-    private int userId = 1; // Assume userId, replace with actual logic
+    private int userId = 1;
     private Map<String, Integer> categoryMap;
-    private long budgetId = -1; // To identify adding new or editing an existing budget
+    private long budgetId = -1;
 
     public BudgetFragment() {
         // Required empty public constructor
@@ -68,16 +68,14 @@ public class BudgetFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_budget, container, false);
 
-        // Initialize views with the correct IDs
-        etDescription = view.findViewById(R.id.et_budgetdescription); // Updated ID
-        etAmount = view.findViewById(R.id.et_budgetamount); // Updated ID
-        etDate = view.findViewById(R.id.et_budgetdate); // Updated ID
-        spinnerCategory = view.findViewById(R.id.spinner_budgetcategory); // Correct ID
-        btnSave = view.findViewById(R.id.btn_budgetsave); // Updated ID
+        etDescription = view.findViewById(R.id.et_budgetdescription);
+        etAmount = view.findViewById(R.id.et_budgetamount);
+        etDate = view.findViewById(R.id.et_budgetdate);
+        spinnerCategory = view.findViewById(R.id.spinner_budgetcategory);
+        btnSave = view.findViewById(R.id.btn_budgetsave);
         db = new DatabaseContext(requireActivity());
         categoryMap = new HashMap<>();
 
-        // Check if editing budget
         Bundle args = getArguments();
         if (args != null && args.containsKey("budgetId")) {
             budgetId = args.getLong("budgetId", -1);
@@ -85,15 +83,12 @@ public class BudgetFragment extends Fragment {
             etAmount.setText(String.valueOf(args.getDouble("amount", 0.0)));
             etDate.setText(args.getString("date", ""));
             int categoryId = args.getInt("categoryId", -1);
-            setupCategorySpinner(categoryId); // Select correct category
+            setupCategorySpinner(categoryId);
         } else {
-            setupCategorySpinner(-1); // Adding new budget
+            setupCategorySpinner(-1);
         }
 
-        // Date picker for etDate
         etDate.setOnClickListener(v -> showDatePicker());
-
-        // Handle save button click
         btnSave.setOnClickListener(v -> saveBudget());
 
         return view;
@@ -102,31 +97,49 @@ public class BudgetFragment extends Fragment {
     private void setupCategorySpinner(int selectedCategoryId) {
         List<String> categories = new ArrayList<>();
         SQLiteDatabase dbReadable = db.getReadableDatabase();
-        Cursor cursor = dbReadable.rawQuery("SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
-                " FROM " + DatabaseContext.CATEGORIES_TABLE +
-                " WHERE " + DatabaseContext.USER_ID_COL + " = ?", new String[]{String.valueOf(userId)});
+
+        Cursor cursor = dbReadable.rawQuery(
+                "SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
+                        " FROM " + DatabaseContext.CATEGORIES_TABLE +
+                        " WHERE " + DatabaseContext.USER_ID_COL + " = ? AND " +
+                        DatabaseContext.NAME + " LIKE 'Income_%'",
+                new String[]{String.valueOf(userId)}
+        );
 
         int selectedPosition = 0;
         if (cursor.moveToFirst()) {
             int index = 0;
             do {
                 int categoryId = cursor.getInt(0);
-                String categoryName = cursor.getString(1);
-                categories.add(categoryName);
-                categoryMap.put(categoryName, categoryId);
+                String fullName = cursor.getString(1);
+                String displayName = fullName.substring("Income_".length());
+                categories.add(displayName);
+                categoryMap.put(displayName, categoryId);
                 if (categoryId == selectedCategoryId) {
                     selectedPosition = index;
                 }
                 index++;
             } while (cursor.moveToNext());
+        } else {
+            // Default income categories
+            String[] defaultCategories = {"Salary", "Bonus", "Investment", "Gifts"};
+            for (int i = 0; i < defaultCategories.length; i++) {
+                categories.add(defaultCategories[i]);
+                categoryMap.put(defaultCategories[i], i + 1);
+            }
+            Toast.makeText(requireActivity(), "No income categories found, using defaults", Toast.LENGTH_LONG).show();
         }
         cursor.close();
         dbReadable.close();
 
-        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireActivity(),
-                android.R.layout.simple_spinner_item, categories);
-        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCategory.setAdapter(categoryAdapter);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireActivity(),
+                android.R.layout.simple_spinner_item,
+                categories
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategory.setAdapter(adapter);
+
         if (selectedCategoryId != -1) {
             spinnerCategory.setSelection(selectedPosition);
         }
@@ -134,7 +147,8 @@ public class BudgetFragment extends Fragment {
 
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePicker = new DatePickerDialog(requireActivity(),
+        DatePickerDialog datePicker = new DatePickerDialog(
+                requireActivity(),
                 (view, year, month, dayOfMonth) -> {
                     Calendar selectedDate = Calendar.getInstance();
                     selectedDate.set(year, month, dayOfMonth);
@@ -143,7 +157,8 @@ public class BudgetFragment extends Fragment {
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
         datePicker.show();
     }
 
@@ -151,24 +166,23 @@ public class BudgetFragment extends Fragment {
         String description = etDescription.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String date = etDate.getText().toString().trim();
-        String category = spinnerCategory.getSelectedItem().toString();
+        String categoryDisplayName = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
-            Toast.makeText(requireActivity(), "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Validate date format (YYYY-MM-DD)
         if (!date.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            Toast.makeText(requireActivity(), "Date format is incorrect (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Invalid date format (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
             return;
         }
 
         double amount;
         try {
             amount = Double.parseDouble(amountStr);
-            if (amount < 0) {
-                Toast.makeText(requireActivity(), "Amount cannot be negative", Toast.LENGTH_SHORT).show();
+            if (amount <= 0) {
+                Toast.makeText(requireActivity(), "Amount must be positive", Toast.LENGTH_SHORT).show();
                 return;
             }
         } catch (NumberFormatException e) {
@@ -176,7 +190,7 @@ public class BudgetFragment extends Fragment {
             return;
         }
 
-        Integer categoryId = categoryMap.get(category);
+        Integer categoryId = categoryMap.get(categoryDisplayName);
         if (categoryId == null) {
             Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
             return;
@@ -190,15 +204,14 @@ public class BudgetFragment extends Fragment {
         }
 
         if (result != -1) {
-            Toast.makeText(requireActivity(), budgetId == -1 ? "Budget added" : "Budget updated", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(),
+                    budgetId == -1 ? "Budget added" : "Budget updated",
+                    Toast.LENGTH_SHORT).show();
             clearInputs();
-            Bundle bundle = new Bundle();
-            bundle.putBoolean("budget_added", true);
-            getParentFragmentManager().setFragmentResult("requestKey", bundle);
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
             Toast.makeText(requireActivity(), "Error saving budget", Toast.LENGTH_SHORT).show();
-            Log.e("BudgetFragment", "Failed to save budget: userId=" + userId + ", categoryId=" + categoryId);
+            Log.e("BudgetFragment", "Save failed for user: " + userId);
         }
     }
 

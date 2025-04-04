@@ -33,9 +33,9 @@ public class ExpensesFragment extends Fragment {
     private Spinner spinnerCategory;
     private Button btnSave;
     private DatabaseContext db;
-    private int userId = 1; // Giả định userId, thay bằng logic thực tế
+    private int userId = 1;
     private Map<String, Integer> categoryMap;
-    private long expenseId = -1; // Để xác định thêm mới hay chỉnh sửa
+    private long expenseId = -1;
 
     public ExpensesFragment() {
         // Required empty public constructor
@@ -68,7 +68,6 @@ public class ExpensesFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_expenses, container, false);
 
-        // Khởi tạo views
         etDescription = view.findViewById(R.id.et_description);
         etAmount = view.findViewById(R.id.et_amount);
         etDate = view.findViewById(R.id.et_date);
@@ -77,7 +76,6 @@ public class ExpensesFragment extends Fragment {
         db = new DatabaseContext(requireActivity());
         categoryMap = new HashMap<>();
 
-        // Kiểm tra nếu đang chỉnh sửa chi phí
         Bundle args = getArguments();
         if (args != null && args.containsKey("expenseId")) {
             expenseId = args.getLong("expenseId", -1);
@@ -85,15 +83,12 @@ public class ExpensesFragment extends Fragment {
             etAmount.setText(String.valueOf(args.getDouble("amount", 0.0)));
             etDate.setText(args.getString("date", ""));
             int categoryId = args.getInt("categoryId", -1);
-            setupCategorySpinner(categoryId); // Chọn đúng danh mục
+            setupCategorySpinner(categoryId);
         } else {
-            setupCategorySpinner(-1); // Thêm mới
+            setupCategorySpinner(-1);
         }
 
-        // Date picker cho etDate
         etDate.setOnClickListener(v -> showDatePicker());
-
-        // Xử lý nút lưu
         btnSave.setOnClickListener(v -> saveExpense());
 
         return view;
@@ -102,40 +97,54 @@ public class ExpensesFragment extends Fragment {
     private void setupCategorySpinner(int selectedCategoryId) {
         List<String> categories = new ArrayList<>();
         SQLiteDatabase dbReadable = db.getReadableDatabase();
-        Cursor cursor = dbReadable.rawQuery("SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
-                " FROM " + DatabaseContext.CATEGORIES_TABLE +
-                " WHERE " + DatabaseContext.USER_ID_COL + " = ?", new String[]{String.valueOf(userId)});
+
+        Cursor cursor = dbReadable.rawQuery(
+                "SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
+                        " FROM " + DatabaseContext.CATEGORIES_TABLE +
+                        " WHERE " + DatabaseContext.USER_ID_COL + " = ? AND " +
+                        DatabaseContext.NAME + " LIKE 'Expense_%'",
+                new String[]{String.valueOf(userId)}
+        );
 
         int selectedPosition = 0;
         if (cursor.moveToFirst()) {
             int index = 0;
             do {
                 int categoryId = cursor.getInt(0);
-                String categoryName = cursor.getString(1);
-                categories.add(categoryName);
-                categoryMap.put(categoryName, categoryId);
+                String fullName = cursor.getString(1);
+                String displayName = fullName.substring("Expense_".length());
+                categories.add(displayName);
+                categoryMap.put(displayName, categoryId);
                 if (categoryId == selectedCategoryId) {
                     selectedPosition = index;
                 }
                 index++;
-                Log.d("ExpensesFragment", "Loaded category: " + categoryName + " (ID: " + categoryId + ")");
+                Log.d("ExpensesFragment", "Category: " + displayName + " (ID: " + categoryId + ")");
             } while (cursor.moveToNext());
         } else {
-            Log.w("ExpensesFragment", "No categories found in database, using default list");
-            String[] defaultCategories = {"Food", "Transportation", "Entertainment", "Shopping", "Housing", "Tuition"};
+
+            // Default expense categories
+            String[] defaultCategories = {"Food", "Transport", "Entertainment", "Shopping", "Housing", "Education"};
+
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
                 categoryMap.put(defaultCategories[i], i + 1);
             }
-            Toast.makeText(requireActivity(), "No categories found in the database, using default list.", Toast.LENGTH_LONG).show();
+
+            Toast.makeText(requireActivity(), "No expense categories found, using defaults", Toast.LENGTH_LONG).show();
+
         }
         cursor.close();
         dbReadable.close();
 
-        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(requireActivity(),
-                android.R.layout.simple_spinner_item, categories);
-        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCategory.setAdapter(categoryAdapter);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireActivity(),
+                android.R.layout.simple_spinner_item,
+                categories
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategory.setAdapter(adapter);
+
         if (selectedCategoryId != -1) {
             spinnerCategory.setSelection(selectedPosition);
         }
@@ -143,7 +152,8 @@ public class ExpensesFragment extends Fragment {
 
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePicker = new DatePickerDialog(requireActivity(),
+        DatePickerDialog datePicker = new DatePickerDialog(
+                requireActivity(),
                 (view, year, month, dayOfMonth) -> {
                     Calendar selectedDate = Calendar.getInstance();
                     selectedDate.set(year, month, dayOfMonth);
@@ -152,7 +162,8 @@ public class ExpensesFragment extends Fragment {
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
         datePicker.show();
     }
 
@@ -160,34 +171,41 @@ public class ExpensesFragment extends Fragment {
         String description = etDescription.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String date = etDate.getText().toString().trim();
-        String category = spinnerCategory.getSelectedItem().toString();
+        String categoryDisplayName = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
-            Toast.makeText(requireActivity(), "Please fill in all the information", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(requireActivity(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
-        // Kiểm tra định dạng ngày (YYYY-MM-DD)
         if (!date.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            Toast.makeText(requireActivity(), "The date format is incorrect (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(requireActivity(), "Invalid date format (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
         double amount;
         try {
             amount = Double.parseDouble(amountStr);
-            if (amount < 0) {
-                Toast.makeText(requireActivity(), "The amount cannot be negative", Toast.LENGTH_SHORT).show();
+
+            if (amount <= 0) {
+                Toast.makeText(requireActivity(), "Amount must be positive", Toast.LENGTH_SHORT).show();
                 return;
             }
         } catch (NumberFormatException e) {
-            Toast.makeText(requireActivity(), "Invalid Amount", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireActivity(), "Invalid amount", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
-        Integer categoryId = categoryMap.get(category);
+        Integer categoryId = categoryMap.get(categoryDisplayName);
         if (categoryId == null) {
-            Toast.makeText(requireActivity(), "Invalid Category", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
@@ -199,15 +217,18 @@ public class ExpensesFragment extends Fragment {
         }
 
         if (result != -1) {
-            Toast.makeText(requireActivity(), expenseId == -1 ? "Expense Added" : "Expense Updated", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(requireActivity(),
+                    expenseId == -1 ? "Expense added" : "Expense updated",
+                    Toast.LENGTH_SHORT).show();
+
             clearInputs();
-            Bundle bundle = new Bundle();
-            bundle.putBoolean("expense_added", true);
-            getParentFragmentManager().setFragmentResult("requestKey", bundle);
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
-            Toast.makeText(requireActivity(), "Error saving the expense.", Toast.LENGTH_SHORT).show();
-            Log.e("ExpensesFragment", "Failed to save expense: userId=" + userId + ", categoryId=" + categoryId);
+
+            Toast.makeText(requireActivity(), "Error saving expense", Toast.LENGTH_SHORT).show();
+            Log.e("ExpensesFragment", "Save failed for user: " + userId);
+
         }
     }
 

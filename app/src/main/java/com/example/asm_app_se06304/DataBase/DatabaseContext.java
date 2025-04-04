@@ -11,7 +11,7 @@ import androidx.annotation.Nullable;
 
 import com.example.asm_app_se06304.model.Budget;
 import com.example.asm_app_se06304.model.Expense;
-import com.example.asm_app_se06304.model.ExpenseCategory;
+import com.example.asm_app_se06304.model.Category;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -225,9 +225,12 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return totalBudget;
     }
 
-    // Get expenses by month and year
-    public List<ExpenseCategory> getExpensesByMonth(int userId, int month, int year) {
-        List<ExpenseCategory> expenses = new ArrayList<>();
+
+    // Lấy danh sách chi phí theo tháng và năm
+    public List<Category> getExpensesByMonth(int userId, int month, int year) {
+        List<Category> expenses = new ArrayList<>();
+
+
         SQLiteDatabase db = this.getReadableDatabase();
 
         String query = "SELECT c." + NAME + ", SUM(e." + EXPENSE_AMOUNT_COL + ")" +
@@ -249,7 +252,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 String categoryName = cursor.getString(0);
                 double totalAmount = cursor.getDouble(1);
                 int color = getColorForCategory(categoryName);
-                expenses.add(new ExpenseCategory(categoryName, totalAmount, color));
+                expenses.add(new Category(categoryName, totalAmount, color));
             } while (cursor.moveToNext());
         }
         cursor.close();
@@ -389,51 +392,57 @@ public class DatabaseContext extends SQLiteOpenHelper {
         }
     }
 
-    public List<String> getDetailedBudgetChanges(String startDate, String endDate) {
-        List<String> changes = new ArrayList<>();
+
+    public long addCategory(int userId, String name, String description) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(USER_ID_COL, userId);
+        values.put(NAME, name);
+        values.put(DESCRIPTION, description);
+
+        long id = db.insert(CATEGORIES_TABLE, null, values);
+        db.close();
+
+        return id;
+    }
+    public List<String> getCategoriesByType(int userId, boolean isIncome) {
+        List<String> categories = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        // Query all budget changes
-        String budgetQuery = "SELECT b." + BUDGET_DESCRIPTION_COL + ", b." + BUDGET_AMOUNT_COL +
-                ", b." + BUDGET_DATETIME_COL + ", c." + NAME +
-                " FROM " + BUDGETS_TABLE + " b" +
-                " JOIN " + CATEGORIES_TABLE + " c ON b." + BUDGET_CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
-                " WHERE date(b." + BUDGET_DATETIME_COL + ") BETWEEN date(?) AND date(?)" +
-                " ORDER BY b." + BUDGET_DATETIME_COL;
+        String prefix = isIncome ? "Income_" : "Expense_";
+        String query = "SELECT " + NAME + " FROM " + CATEGORIES_TABLE +
+                " WHERE " + USER_ID_COL + " = ? AND " + NAME + " LIKE ?";
 
-        // Query all expenses affecting budget
-        String expenseQuery = "SELECT e." + EXPENSE_DESCRIPTION_COL + ", e." + EXPENSE_AMOUNT_COL +
-                ", e." + EXPENSE_DATE_COL + ", c." + NAME +
-                " FROM " + EXPENSES_TABLE + " e" +
-                " JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
-                " WHERE date(e." + EXPENSE_DATE_COL + ") BETWEEN date(?) AND date(?)" +
-                " ORDER BY e." + EXPENSE_DATE_COL;
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId), prefix + "%"});
 
-        // Process budget changes
-        Cursor budgetCursor = db.rawQuery(budgetQuery, new String[]{startDate, endDate});
-        while (budgetCursor.moveToNext()) {
-            String date = budgetCursor.getString(2).substring(0, 10);
-            String category = budgetCursor.getString(3);
-            String description = budgetCursor.getString(0);
-            double amount = budgetCursor.getDouble(1);
-            changes.add(date + " | BUDGET SET | " + category + " | " +
-                    description + " | " + String.format("%,.0f", amount) + " VND");
+        if (cursor.moveToFirst()) {
+            do {
+                // Bỏ tiền tố khi hiển thị
+                String fullName = cursor.getString(0);
+                String displayName = fullName.substring(fullName.indexOf('_') + 1);
+                categories.add(displayName.replace("_", " ")); // Thay dấu _ bằng khoảng trắng
+            } while (cursor.moveToNext());
         }
-        budgetCursor.close();
 
-        // Process expense changes
-        Cursor expenseCursor = db.rawQuery(expenseQuery, new String[]{startDate, endDate});
-        while (expenseCursor.moveToNext()) {
-            String date = expenseCursor.getString(2).substring(0, 10);
-            String category = expenseCursor.getString(3);
-            String description = expenseCursor.getString(0);
-            double amount = expenseCursor.getDouble(1);
-            changes.add(date + " | EXPENSE   | " + category + " | " +
-                    description + " | -" + String.format("%,.0f", amount) + " VND");
-        }
-        expenseCursor.close();
-
+        cursor.close();
         db.close();
-        return changes;
+        return categories;
+    }
+    public boolean isIncomeCategory(int categoryId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + NAME + " FROM " + CATEGORIES_TABLE +
+                        " WHERE " + CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)});
+
+        boolean isIncome = false;
+        if (cursor.moveToFirst()) {
+            String name = cursor.getString(0);
+            isIncome = name.startsWith("Income_");
+        }
+
+        cursor.close();
+        db.close();
+        return isIncome;
     }
 }
