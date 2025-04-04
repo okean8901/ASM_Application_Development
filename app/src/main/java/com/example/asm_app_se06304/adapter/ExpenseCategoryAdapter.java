@@ -7,16 +7,16 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-import com.example.asm_app_se06304.model.ExpenseCategory;
+import com.example.asm_app_se06304.model.Category;
 
 import java.text.DecimalFormat;
 import java.util.List;
 
-public class ExpenseCategoryAdapter extends ArrayAdapter<ExpenseCategory> {
+public class ExpenseCategoryAdapter extends ArrayAdapter<Category> {
 
-    private List<ExpenseCategory> categories;
+    private List<Category> categories;
 
-    public ExpenseCategoryAdapter(Context context, List<ExpenseCategory> categories) {
+    public ExpenseCategoryAdapter(Context context, List<Category> categories) {
         super(context, 0, categories);
         this.categories = categories;
     }
@@ -27,7 +27,7 @@ public class ExpenseCategoryAdapter extends ArrayAdapter<ExpenseCategory> {
             convertView = LayoutInflater.from(getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
         }
 
-        ExpenseCategory category = getItem(position);
+        Category category = getItem(position);
 
         TextView tvName = convertView.findViewById(android.R.id.text1);
         TextView tvAmount = convertView.findViewById(android.R.id.text2);
@@ -39,7 +39,7 @@ public class ExpenseCategoryAdapter extends ArrayAdapter<ExpenseCategory> {
         return convertView;
     }
 
-    public void updateCategories(List<ExpenseCategory> newCategories) {
+    public void updateCategories(List<Category> newCategories) {
         this.categories.clear();
         this.categories.addAll(newCategories);
         notifyDataSetChanged();
