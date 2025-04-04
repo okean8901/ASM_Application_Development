@@ -81,10 +81,10 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                 int itemId = item.getItemId();
                 if (itemId == R.id.menu_home) {
                     viewPager2.setCurrentItem(0);
-                } else if (itemId == R.id.menu_budget) {
-                    viewPager2.setCurrentItem(1);
                 } else if (itemId == R.id.menu_expanse) {
                     viewPager2.setCurrentItem(2);
+                } else if (itemId == R.id.menu_budget) {
+                    viewPager2.setCurrentItem(1);
                 } else if (itemId == R.id.menu_setting) {
                     viewPager2.setCurrentItem(3);
                 }
@@ -107,9 +107,9 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                 super.onPageSelected(position);
                 if (position == 0) {
                     bottomNavigationView.getMenu().findItem(R.id.menu_home).setChecked(true);
-                }else if (position == 1){
-                    bottomNavigationView.getMenu().findItem(R.id.menu_expanse).setChecked(true);
                 }else if (position == 2){
+                    bottomNavigationView.getMenu().findItem(R.id.menu_expanse).setChecked(true);
+                }else if (position == 1){
                     bottomNavigationView.getMenu().findItem(R.id.menu_budget).setChecked(true);
                 }else if (position == 3){
                     bottomNavigationView.getMenu().findItem(R.id.menu_setting).setChecked(true);

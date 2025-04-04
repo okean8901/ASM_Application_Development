@@ -20,7 +20,7 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:contentDescription="App Logo"
-            android:src="@drawable/logo"
+            android:src="@drawable/logoapp"
             android:layout_gravity="center_horizontal"/>
 
         <TextView
@@ -121,7 +121,7 @@
             android:backgroundTint="#0398F4"
             android:textColor="@android:color/white"
             android:padding="16dp"
-            android:drawableStart="@drawable/export"
+            app:drawableStartCompat="@drawable/pdf_icon"
             android:drawableTint="@android:color/white"
             android:drawablePadding="8dp"/>
     </LinearLayout>
