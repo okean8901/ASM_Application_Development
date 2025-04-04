@@ -3,9 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".SettingFragment"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="10dp"
+    android:background="@drawable/gradient_backgound_2">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
@@ -16,5 +16,11 @@
         android:textStyle="bold"
         android:layout_gravity="center_horizontal"
         android:id="@+id/tvTitle"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add Category"
+        android:id="@+id/btnAddCategory"/>
 
 </LinearLayout>

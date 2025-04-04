@@ -33,7 +33,7 @@ import androidx.fragment.app.FragmentResultListener;
 
 import com.example.asm_app_se06304.DataBase.DatabaseContext;
 import com.example.asm_app_se06304.adapter.ExpenseCategoryAdapter;
-import com.example.asm_app_se06304.model.ExpenseCategory;
+import com.example.asm_app_se06304.model.Category;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ public class HomeFragment extends Fragment {
     private DatabaseContext db;
     private int userId = 1;
     private ExpenseCategoryAdapter adapter;
-    private List<ExpenseCategory> expenseCategories;
+    private List<Category> expenseCategories;
 
     // Notification variables
     private static final String NOTIFICATION_PREFS = "NotificationPrefs";
@@ -203,7 +203,7 @@ public class HomeFragment extends Fragment {
         adapter.updateCategories(expenseCategories);
 
         double totalSpent = 0;
-        for (ExpenseCategory category : expenseCategories) {
+        for (Category category : expenseCategories) {
             totalSpent += category.getTotalAmount();
         }
 

@@ -7,7 +7,7 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:id="@+id/imgProduct"
-        android:src="@drawable/logo"
+        android:src="@drawable/logoapp"
         android:contentDescription="Product"/>
 
     <TextView
