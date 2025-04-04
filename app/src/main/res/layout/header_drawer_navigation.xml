@@ -4,12 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="180dp"
     android:padding="17dp"
-    android:background="@drawable/header">
+    android:background="@drawable/gradient_backgound_2">
 
     <ImageView
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:src="@drawable/logo"
+        android:src="@drawable/logoapp"
         android:contentDescription="Logo"
         android:layout_gravity="center_horizontal"/>
 

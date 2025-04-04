@@ -7,7 +7,7 @@
     android:padding="10dp"
     android:orientation="vertical"
     android:id="@+id/fragment_container"
-    android:background="#F5F5F5">
+    android:background="@drawable/gradient_backgound_2">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
@@ -21,7 +21,7 @@
         android:id="@+id/et_budgetdescription"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Mô tả (ví dụ: Tiền thuê nhà)"
+        android:hint="Description (e.g., Rent)"
         android:padding="10dp"
         android:layout_marginBottom="16dp"/>
 
@@ -29,7 +29,7 @@
         android:id="@+id/et_budgetamount"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Số tiền (VNĐ)"
+        android:hint="Amount (VND)"
         android:inputType="numberDecimal"
         android:padding="10dp"
         android:layout_marginBottom="16dp"/>
@@ -38,7 +38,7 @@
         android:id="@+id/et_budgetdate"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Ngày (nhấn để chọn)"
+        android:hint="Date (click to select)"
         android:focusable="false"
         android:layout_marginBottom="20dp"/>
 
@@ -52,7 +52,7 @@
         android:id="@+id/btn_budgetsave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lưu thu nhập"
+        android:text="Save budget"
         android:backgroundTint="#00008B"
         android:textColor="#FFFFFF"
         android:padding="16dp"/>

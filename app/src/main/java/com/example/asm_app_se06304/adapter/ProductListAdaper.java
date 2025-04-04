@@ -1,4 +1,4 @@
-package com.example.campusexpensemanagerse06304.adapter;
+package com.example.asm_app_se06304.adapter;
 
 import android.content.Context;
 import android.view.View;

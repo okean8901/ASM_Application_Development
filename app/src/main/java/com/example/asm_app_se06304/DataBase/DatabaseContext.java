@@ -54,7 +54,6 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public static final String BUDGET_USER_ID_COL = "user_id";
     private static final String BUDGET_DATETIME_COL = "budget_date";
 
-
     public DatabaseContext(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DB_VERSION);
     }
@@ -72,7 +71,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 LAST_LOGIN_COL + " TIMESTAMP);";
         db.execSQL(createUsersTable);
 
-        // Thêm dữ liệu mẫu cho Users
+        // Add sample data for Users
         db.execSQL("INSERT INTO " + USERS_TABLE + " (" + USERNAME_COL + ", " + PASSWORD_COL + ", " + EMAIL_COL + ") " +
                 "VALUES ('user1', 'password123', 'user1@example.com');");
 
@@ -86,13 +85,13 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 "UNIQUE(" + USER_ID_COL + ", " + NAME + "));";
         db.execSQL(createCategoriesTable);
 
-        // Thêm dữ liệu mẫu cho Categories (user_id = 1)
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Ăn uống', 'Chi phí ăn uống');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Di chuyển', 'Chi phí đi lại');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Giải trí', 'Chi phí giải trí');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Mua sắm', 'Chi phí mua sắm');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Nhà ở', 'Chi phí nhà ở');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Học phí', 'Chi phí học phí');");
+        // Add sample data for Categories (user_id = 1)
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Food', 'Food expenses');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Transportation', 'Transportation costs');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Entertainment', 'Entertainment expenses');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Shopping', 'Shopping expenses');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Housing', 'Housing costs');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Tuition', 'Education fees');");
 
         // Create Expenses table
         String createExpensesTable = "CREATE TABLE " + EXPENSES_TABLE + " (" +
@@ -106,14 +105,14 @@ public class DatabaseContext extends SQLiteOpenHelper {
                 "FOREIGN KEY (" + CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
         db.execSQL(createExpensesTable);
 
-        // Creating the Budgets table
+        // Create Budgets table
         String createBudgetsTable = "CREATE TABLE " + BUDGETS_TABLE + " (" +
                 BUDGET_ID_COL + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 BUDGET_USER_ID_COL + " INTEGER NOT NULL, " +
                 BUDGET_CATEGORY_ID_COL + " INTEGER NOT NULL, " +
                 BUDGET_DESCRIPTION_COL + " TEXT, " +
                 BUDGET_AMOUNT_COL + " DECIMAL(10, 2) NOT NULL, " +
-                BUDGET_DATETIME_COL + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " + // Add datetime
+                BUDGET_DATETIME_COL + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                 "FOREIGN KEY (" + BUDGET_USER_ID_COL + ") REFERENCES " + USERS_TABLE + "(" + ID_COL + "), " +
                 "FOREIGN KEY (" + BUDGET_CATEGORY_ID_COL + ") REFERENCES " + CATEGORIES_TABLE + "(" + CATEGORY_ID_COL + "));";
         db.execSQL(createBudgetsTable);
@@ -127,11 +126,10 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + USERS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + BUDGETS_TABLE);
 
-
         onCreate(db);
     }
 
-    // Thêm chi phí mới
+    // Add new expense
     public long addExpense(int userId, int categoryId, String description, double amount, String date) {
         SQLiteDatabase db = this.getWritableDatabase();
 
@@ -170,7 +168,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return id;
     }
 
-    // Cập nhật chi phí
+    // Update expense
     public long updateExpense(long expenseId, int userId, int categoryId, String description, double amount, String date) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -185,9 +183,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return result;
     }
 
-
-
-    // Lấy danh sách chi phí của người dùng
+    // Get all expenses for user
     public List<Expense> getAllExpenses(int userId) {
         List<Expense> expenses = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -216,23 +212,25 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return expenses;
     }
 
-
     public double getTotalBudget(int userId) {
         double totalBudget = 0;
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT SUM(" + BUDGET_AMOUNT_COL + ") FROM " + BUDGETS_TABLE + " WHERE " + BUDGET_USER_ID_COL + " = ?",
                 new String[]{String.valueOf(userId)});
         if (cursor.moveToFirst()) {
-            totalBudget = cursor.getDouble(0); // Get the sum
+            totalBudget = cursor.getDouble(0);
         }
         cursor.close();
         db.close();
         return totalBudget;
     }
 
+
     // Lấy danh sách chi phí theo tháng và năm
     public List<Category> getExpensesByMonth(int userId, int month, int year) {
         List<Category> expenses = new ArrayList<>();
+
+
         SQLiteDatabase db = this.getReadableDatabase();
 
         String query = "SELECT c." + NAME + ", SUM(e." + EXPENSE_AMOUNT_COL + ")" +
@@ -293,7 +291,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         values.put(BUDGET_CATEGORY_ID_COL, categoryId);
         values.put(BUDGET_DESCRIPTION_COL, description);
         values.put(BUDGET_AMOUNT_COL, amount);
-        values.put(BUDGET_DATETIME_COL, datetime);  // Store datetime
+        values.put(BUDGET_DATETIME_COL, datetime);
 
         long id = db.insert(BUDGETS_TABLE, null, values);
         if (id == -1) {
@@ -335,7 +333,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         values.put(BUDGET_DESCRIPTION_COL, description);
         values.put(BUDGET_AMOUNT_COL, amount);
 
-        // Update the budget in the Budgets table
+        // Update the budget
         long result = db.update(BUDGETS_TABLE, values, BUDGET_ID_COL + " = ?", new String[]{String.valueOf(budgetId)});
         db.close();
         return result;
@@ -367,6 +365,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.close();
         return budgets;
     }
+
     public long deleteExpense(long expenseId) {
         SQLiteDatabase db = this.getWritableDatabase();
         long result = db.delete(EXPENSES_TABLE, EXPENSE_ID_COL + " = ?", new String[]{String.valueOf(expenseId)});
@@ -381,18 +380,18 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return result;
     }
 
-
     private int getColorForCategory(String categoryName) {
         switch (categoryName) {
-            case "Ăn uống": return android.graphics.Color.BLUE;
-            case "Di chuyển": return android.graphics.Color.RED;
-            case "Giải trí": return android.graphics.Color.YELLOW;
-            case "Mua sắm": return android.graphics.Color.GREEN;
-            case "Nhà ở": return android.graphics.Color.MAGENTA;
-            case "Học phí": return android.graphics.Color.CYAN;
+            case "Food": return android.graphics.Color.BLUE;
+            case "Transportation": return android.graphics.Color.RED;
+            case "Entertainment": return android.graphics.Color.YELLOW;
+            case "Shopping": return android.graphics.Color.GREEN;
+            case "Housing": return android.graphics.Color.MAGENTA;
+            case "Tuition": return android.graphics.Color.CYAN;
             default: return android.graphics.Color.GRAY;
         }
     }
+
 
     public long addCategory(int userId, String name, String description) {
         SQLiteDatabase db = this.getWritableDatabase();

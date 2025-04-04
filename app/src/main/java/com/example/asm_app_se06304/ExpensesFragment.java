@@ -122,13 +122,17 @@ public class ExpensesFragment extends Fragment {
                 Log.d("ExpensesFragment", "Category: " + displayName + " (ID: " + categoryId + ")");
             } while (cursor.moveToNext());
         } else {
+
             // Default expense categories
             String[] defaultCategories = {"Food", "Transport", "Entertainment", "Shopping", "Housing", "Education"};
+
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
                 categoryMap.put(defaultCategories[i], i + 1);
             }
+
             Toast.makeText(requireActivity(), "No expense categories found, using defaults", Toast.LENGTH_LONG).show();
+
         }
         cursor.close();
         dbReadable.close();
@@ -170,30 +174,38 @@ public class ExpensesFragment extends Fragment {
         String categoryDisplayName = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
+
             Toast.makeText(requireActivity(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
         if (!date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+
             Toast.makeText(requireActivity(), "Invalid date format (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
         double amount;
         try {
             amount = Double.parseDouble(amountStr);
+
             if (amount <= 0) {
                 Toast.makeText(requireActivity(), "Amount must be positive", Toast.LENGTH_SHORT).show();
                 return;
             }
         } catch (NumberFormatException e) {
             Toast.makeText(requireActivity(), "Invalid amount", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
         Integer categoryId = categoryMap.get(categoryDisplayName);
         if (categoryId == null) {
+
             Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
+
             return;
         }
 
@@ -205,14 +217,18 @@ public class ExpensesFragment extends Fragment {
         }
 
         if (result != -1) {
+
             Toast.makeText(requireActivity(),
                     expenseId == -1 ? "Expense added" : "Expense updated",
                     Toast.LENGTH_SHORT).show();
+
             clearInputs();
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
+
             Toast.makeText(requireActivity(), "Error saving expense", Toast.LENGTH_SHORT).show();
             Log.e("ExpensesFragment", "Save failed for user: " + userId);
+
         }
     }
 

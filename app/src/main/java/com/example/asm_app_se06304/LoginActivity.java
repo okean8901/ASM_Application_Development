@@ -70,7 +70,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Validate inputs
         if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Vui lòng điền đầy đủ thông tin!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please fill in all the information!", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -84,11 +84,11 @@ public class LoginActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish(); // Close Login Activity
             } else {
-                Toast.makeText(this, "Sai tên đăng nhập hoặc mật khẩu!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Incorrect username or password!", Toast.LENGTH_SHORT).show();
             }
             cursor.close();
         } else {
-            Toast.makeText(this, "Tên đăng nhập không tồn tại!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Username does not exist!", Toast.LENGTH_SHORT).show();
         }
     }
 

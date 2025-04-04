@@ -47,6 +47,8 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
         Menu menu = navigationView.getMenu();
         MenuItem logout = menu.findItem(R.id.nav_logout);
+        MenuItem export = menu.findItem(R.id.nav_export_report);
+
 
         setupViewPager();
 
@@ -62,16 +64,27 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        export.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(@NonNull MenuItem menuItem) {
+                Intent intentExport = new Intent(MenuActivity.this, ExportPdfActivity.class);
+                startActivity(intentExport);
+                return false;
+            }
+        });
+
+
+
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int itemId = item.getItemId();
                 if (itemId == R.id.menu_home) {
                     viewPager2.setCurrentItem(0);
-                } else if (itemId == R.id.menu_budget) {
-                    viewPager2.setCurrentItem(1);
                 } else if (itemId == R.id.menu_expanse) {
                     viewPager2.setCurrentItem(2);
+                } else if (itemId == R.id.menu_budget) {
+                    viewPager2.setCurrentItem(1);
                 } else if (itemId == R.id.menu_setting) {
                     viewPager2.setCurrentItem(3);
                 }
@@ -94,9 +107,9 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                 super.onPageSelected(position);
                 if (position == 0) {
                     bottomNavigationView.getMenu().findItem(R.id.menu_home).setChecked(true);
-                }else if (position == 1){
-                    bottomNavigationView.getMenu().findItem(R.id.menu_expanse).setChecked(true);
                 }else if (position == 2){
+                    bottomNavigationView.getMenu().findItem(R.id.menu_expanse).setChecked(true);
+                }else if (position == 1){
                     bottomNavigationView.getMenu().findItem(R.id.menu_budget).setChecked(true);
                 }else if (position == 3){
                     bottomNavigationView.getMenu().findItem(R.id.menu_setting).setChecked(true);
