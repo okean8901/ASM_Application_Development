@@ -1,9 +1,11 @@
 package com.example.asm_app_se06304;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -21,6 +23,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -46,6 +49,7 @@ import java.util.List;
 public class ExportPdfActivity extends AppCompatActivity {
 
     private static final int REQUEST_STORAGE_PERMISSION = 100;
+    private String exportedFileName = "";
 
     private TextView tvStartDate, tvEndDate;
     private Button btnSelectStartDate, btnSelectEndDate, btnGeneratePDF;
@@ -53,7 +57,7 @@ public class ExportPdfActivity extends AppCompatActivity {
     private DatabaseContext databaseContext;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf_export);
 
@@ -133,8 +137,8 @@ public class ExportPdfActivity extends AppCompatActivity {
                 return;
             }
 
-            String fileName = "Budget_Report_" + System.currentTimeMillis() + ".pdf";
-            OutputStream outputStream = createOutputStream(fileName);
+            exportedFileName = "Budget_Report_" + System.currentTimeMillis() + ".pdf";
+            OutputStream outputStream = createOutputStream(exportedFileName);
 
             if (outputStream != null) {
                 Document document = new Document();
@@ -185,11 +189,34 @@ public class ExportPdfActivity extends AppCompatActivity {
                 document.close();
                 outputStream.close();
 
-                Toast.makeText(this, "PDF exported successfully!", Toast.LENGTH_LONG).show();
+                showExportSuccessDialog();
             }
         } catch (Exception e) {
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             Log.e("PDF Export", "Error", e);
+        }
+    }
+
+    private void showExportSuccessDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Export Successful")
+                .setMessage("PDF file has been saved to your Downloads folder.\nFile name: " + exportedFileName)
+                .setPositiveButton("Open Downloads", (dialog, which) -> openDownloadsFolder())
+                .setNegativeButton("OK", null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
+    }
+
+    private void openDownloadsFolder() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        Uri uri = Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString());
+        intent.setDataAndType(uri, "*/*");
+
+        // Verify that the intent will resolve to an activity
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "No file manager app found", Toast.LENGTH_SHORT).show();
         }
     }
 
