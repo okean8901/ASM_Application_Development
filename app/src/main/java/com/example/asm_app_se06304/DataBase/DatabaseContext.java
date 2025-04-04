@@ -86,12 +86,8 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.execSQL(createCategoriesTable);
 
         // Add sample data for Categories (user_id = 1)
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Food', 'Food expenses');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Transportation', 'Transportation costs');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Entertainment', 'Entertainment expenses');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Shopping', 'Shopping expenses');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Housing', 'Housing costs');");
-        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, 'Tuition', 'Education fees');");
+        db.execSQL("INSERT INTO " + CATEGORIES_TABLE + " (" + USER_ID_COL + ", " + NAME + ", " + DESCRIPTION + ") VALUES (1, '-- None --', '');");
+
 
         // Create Expenses table
         String createExpensesTable = "CREATE TABLE " + EXPENSES_TABLE + " (" +
@@ -445,4 +441,52 @@ public class DatabaseContext extends SQLiteOpenHelper {
         db.close();
         return isIncome;
     }
+
+    public List<String> getDetailedBudgetChanges(String startDate, String endDate) {
+        List<String> changes = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        // Query all budget changes
+        String budgetQuery = "SELECT b." + BUDGET_DESCRIPTION_COL + ", b." + BUDGET_AMOUNT_COL +
+                ", b." + BUDGET_DATETIME_COL + ", c." + NAME +
+                " FROM " + BUDGETS_TABLE + " b" +
+                " JOIN " + CATEGORIES_TABLE + " c ON b." + BUDGET_CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE date(b." + BUDGET_DATETIME_COL + ") BETWEEN date(?) AND date(?)" +
+                " ORDER BY b." + BUDGET_DATETIME_COL;
+
+        // Query all expenses affecting budget
+        String expenseQuery = "SELECT e." + EXPENSE_DESCRIPTION_COL + ", e." + EXPENSE_AMOUNT_COL +
+                ", e." + EXPENSE_DATE_COL + ", c." + NAME +
+                " FROM " + EXPENSES_TABLE + " e" +
+                " JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE date(e." + EXPENSE_DATE_COL + ") BETWEEN date(?) AND date(?)" +
+                " ORDER BY e." + EXPENSE_DATE_COL;
+
+        // Process budget changes
+        Cursor budgetCursor = db.rawQuery(budgetQuery, new String[]{startDate, endDate});
+        while (budgetCursor.moveToNext()) {
+            String date = budgetCursor.getString(2).substring(0, 10);
+            String category = budgetCursor.getString(3);
+            String description = budgetCursor.getString(0);
+            double amount = budgetCursor.getDouble(1);
+            changes.add(date + " | BUDGET SET | " + category + " | " +
+                    description + " | " + String.format("%,.0f", amount) + " VND");
+        }
+        budgetCursor.close();
+
+        // Process expense changes
+        Cursor expenseCursor = db.rawQuery(expenseQuery, new String[]{startDate, endDate});
+        while (expenseCursor.moveToNext()) {
+            String date = expenseCursor.getString(2).substring(0, 10);
+            String category = expenseCursor.getString(3);
+            String description = expenseCursor.getString(0);
+            double amount = expenseCursor.getDouble(1);
+            changes.add(date + " | EXPENSE   | " + category + " | " +
+                    description + " | -" + String.format("%,.0f", amount) + " VND");
+        }
+        expenseCursor.close();
+
+        db.close();
+        return changes;
+    }
+
 }

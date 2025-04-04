@@ -124,7 +124,7 @@ public class ExpensesFragment extends Fragment {
         } else {
 
             // Default expense categories
-            String[] defaultCategories = {"Food", "Transport", "Entertainment", "Shopping", "Housing", "Education"};
+            String[] defaultCategories = {"-- None --"};
 
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
