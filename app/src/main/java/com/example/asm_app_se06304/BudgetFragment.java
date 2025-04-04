@@ -122,7 +122,7 @@ public class BudgetFragment extends Fragment {
             } while (cursor.moveToNext());
         } else {
             // Default income categories
-            String[] defaultCategories = {"Salary", "Bonus", "Investment", "Gifts"};
+            String[] defaultCategories = {"-- None --"};
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
                 categoryMap.put(defaultCategories[i], i + 1);
