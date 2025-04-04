@@ -7,6 +7,27 @@
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
+    <!-- Notification content strings -->
+    <string name="notification_channel_name">Budget Alerts</string>
+    <string name="notification_channel_description">Important notifications about your budget status</string>
+
+    <!-- Notification titles -->
+    <string name="budget_warning_title">Budget Warning</string>
+    <string name="budget_alert_title">Budget Alert</string>
+
+    <!-- Notification messages -->
+    <string name="budget_warning_message">You\'ve used over 80% of your budget</string>
+    <string name="budget_alert_message">You\'ve exceeded your budget!</string>
+
+    <string name="budget_warning_20_title">Budget Warning (20% Left)</string>
+    <string name="budget_warning_20_message">Only 20%% of budget remaining! Remaining amount: %1$s</string>
+
+    <!-- Toast messages -->
+    <string name="notifications_enabled">Notifications enabled</string>
+    <string name="notifications_disabled">Notifications disabled</string>
+    <string name="notification_permission_granted">Notification permission granted</string>
+    <string name="notification_permission_denied">Notification permission denied</string>
+
     <string name="lorem_ipsum">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris
         volutpat, dolor id interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus
