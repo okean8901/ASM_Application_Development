@@ -5,20 +5,24 @@ import android.app.DatePickerDialog;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.example.asm_app_se06304.DataBase.DatabaseContext;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -32,6 +36,7 @@ public class ExpensesFragment extends Fragment {
     private EditText etDescription, etAmount, etDate;
     private Spinner spinnerCategory;
     private Button btnSave;
+    private ListView listBudgets;
     private DatabaseContext db;
     private int userId = 1;
     private Map<String, Integer> categoryMap;
@@ -60,6 +65,7 @@ public class ExpensesFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        db = new DatabaseContext(requireActivity());
     }
 
     @SuppressLint("MissingInflatedId")
@@ -68,14 +74,17 @@ public class ExpensesFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_expenses, container, false);
 
+        // Initialize views
         etDescription = view.findViewById(R.id.et_description);
         etAmount = view.findViewById(R.id.et_amount);
         etDate = view.findViewById(R.id.et_date);
         spinnerCategory = view.findViewById(R.id.spinner_category);
         btnSave = view.findViewById(R.id.btn_save);
-        db = new DatabaseContext(requireActivity());
+        listBudgets = view.findViewById(R.id.list_budgets);
+
         categoryMap = new HashMap<>();
 
+        // Handle arguments if editing existing expense
         Bundle args = getArguments();
         if (args != null && args.containsKey("expenseId")) {
             expenseId = args.getLong("expenseId", -1);
@@ -88,10 +97,128 @@ public class ExpensesFragment extends Fragment {
             setupCategorySpinner(-1);
         }
 
+        // Set up listeners
         etDate.setOnClickListener(v -> showDatePicker());
         btnSave.setOnClickListener(v -> saveExpense());
 
+        // Listen for budget updates from other fragments
+        getParentFragmentManager().setFragmentResultListener("budget_update", this, (requestKey, result) -> {
+            if (result.getBoolean("budget_added", false)) {
+                loadRemainingBudget();
+            }
+        });
+
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadRemainingBudget();
+    }
+
+    private void loadRemainingBudget() {
+        if (spinnerCategory.getSelectedItem() == null) {
+            listBudgets.setAdapter(null);
+            return;
+        }
+
+        String selectedCategoryDisplay = spinnerCategory.getSelectedItem().toString();
+
+        if (selectedCategoryDisplay.equals("-- None --") || !categoryMap.containsKey(selectedCategoryDisplay)) {
+            listBudgets.setAdapter(null);
+            return;
+        }
+
+        // Get the expense category ID
+        int expenseCategoryId = categoryMap.get(selectedCategoryDisplay);
+
+        // Get corresponding income category ID
+        int incomeCategoryId = getIncomeCategoryId(selectedCategoryDisplay);
+
+        if (incomeCategoryId == -1) {
+            showRemainingBudget(0); // No matching income category found
+            return;
+        }
+
+        DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
+
+        // 1. Get total budget for the income category
+        double totalBudget = getTotalBudget(incomeCategoryId);
+
+
+        // 2. Get total expenses for the expense category
+        double totalExpenses = getTotalExpenses(expenseCategoryId);
+
+
+        // 3. Calculate remaining budget
+        double remaining = totalBudget - totalExpenses;
+        showRemainingBudget(remaining);
+    }
+
+    private int getIncomeCategoryId(String expenseCategoryDisplay) {
+        String incomeCategoryName = "Income_" + expenseCategoryDisplay;
+        SQLiteDatabase dbReadable = db.getReadableDatabase();
+
+        Cursor cursor = dbReadable.rawQuery(
+                "SELECT " + DatabaseContext.CATEGORY_ID_COL +
+                        " FROM " + DatabaseContext.CATEGORIES_TABLE +
+                        " WHERE " + DatabaseContext.USER_ID_COL + " = ? AND " +
+                        DatabaseContext.NAME + " = ?",
+                new String[]{String.valueOf(userId), incomeCategoryName}
+        );
+
+        int categoryId = -1;
+        if (cursor.moveToFirst()) {
+            categoryId = cursor.getInt(0);
+        }
+        cursor.close();
+        return categoryId;
+    }
+
+    private void showRemainingBudget(double amount) {
+        DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
+        List<String> budgetInfo = new ArrayList<>();
+        budgetInfo.add("Remaining Budget: " + formatter.format(amount));
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireActivity(),
+                android.R.layout.simple_list_item_1,
+                budgetInfo
+        );
+        listBudgets.setAdapter(adapter);
+    }
+
+    private double getTotalBudget(int categoryId) {
+        double total = 0;
+        Cursor cursor = db.getReadableDatabase().rawQuery(
+                "SELECT SUM(" + DatabaseContext.BUDGET_AMOUNT_COL + ") " +
+                        "FROM " + DatabaseContext.BUDGETS_TABLE + " " +
+                        "WHERE " + DatabaseContext.USER_ID_COL + " = ? " +
+                        "AND " + DatabaseContext.CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(userId), String.valueOf(categoryId)}
+        );
+        if (cursor.moveToFirst()) {
+            total = cursor.getDouble(0);
+        }
+        cursor.close();
+        return total;
+    }
+
+    private double getTotalExpenses(int categoryId) {
+        double total = 0;
+        Cursor cursor = db.getReadableDatabase().rawQuery(
+                "SELECT SUM(" + DatabaseContext.EXPENSE_AMOUNT_COL + ") " +
+                        "FROM " + DatabaseContext.EXPENSES_TABLE + " " +
+                        "WHERE " + DatabaseContext.USER_ID_COL + " = ? " +
+                        "AND " + DatabaseContext.CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(userId), String.valueOf(categoryId)}
+        );
+        if (cursor.moveToFirst()) {
+            total = cursor.getDouble(0);
+        }
+        cursor.close();
+        return total;
     }
 
     private void setupCategorySpinner(int selectedCategoryId) {
@@ -119,20 +246,15 @@ public class ExpensesFragment extends Fragment {
                     selectedPosition = index;
                 }
                 index++;
-                Log.d("ExpensesFragment", "Category: " + displayName + " (ID: " + categoryId + ")");
             } while (cursor.moveToNext());
         } else {
-
             // Default expense categories
             String[] defaultCategories = {"-- None --"};
-
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
                 categoryMap.put(defaultCategories[i], i + 1);
             }
-
-            Toast.makeText(requireActivity(), "No expense categories found, using defaults", Toast.LENGTH_LONG).show();
-
+            Toast.makeText(requireActivity(), "No expense categories found", Toast.LENGTH_SHORT).show();
         }
         cursor.close();
         dbReadable.close();
@@ -148,6 +270,22 @@ public class ExpensesFragment extends Fragment {
         if (selectedCategoryId != -1) {
             spinnerCategory.setSelection(selectedPosition);
         }
+
+        // Add listener for category selection changes
+        spinnerCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                loadRemainingBudget();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                listBudgets.setAdapter(null);
+            }
+        });
+
+        // Load initial data
+        spinnerCategory.post(() -> loadRemainingBudget());
     }
 
     private void showDatePicker() {
@@ -174,38 +312,30 @@ public class ExpensesFragment extends Fragment {
         String categoryDisplayName = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
-
             Toast.makeText(requireActivity(), "Please fill all fields", Toast.LENGTH_SHORT).show();
-
             return;
         }
 
         if (!date.matches("\\d{4}-\\d{2}-\\d{2}")) {
-
             Toast.makeText(requireActivity(), "Invalid date format (YYYY-MM-DD)", Toast.LENGTH_SHORT).show();
-
             return;
         }
 
         double amount;
         try {
             amount = Double.parseDouble(amountStr);
-
             if (amount <= 0) {
                 Toast.makeText(requireActivity(), "Amount must be positive", Toast.LENGTH_SHORT).show();
                 return;
             }
         } catch (NumberFormatException e) {
             Toast.makeText(requireActivity(), "Invalid amount", Toast.LENGTH_SHORT).show();
-
             return;
         }
 
         Integer categoryId = categoryMap.get(categoryDisplayName);
         if (categoryId == null) {
-
             Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
-
             return;
         }
 
@@ -217,18 +347,14 @@ public class ExpensesFragment extends Fragment {
         }
 
         if (result != -1) {
-
             Toast.makeText(requireActivity(),
                     expenseId == -1 ? "Expense added" : "Expense updated",
                     Toast.LENGTH_SHORT).show();
-
+            loadRemainingBudget(); // Refresh the remaining budget display
             clearInputs();
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
-
             Toast.makeText(requireActivity(), "Error saving expense", Toast.LENGTH_SHORT).show();
-            Log.e("ExpensesFragment", "Save failed for user: " + userId);
-
         }
     }
 

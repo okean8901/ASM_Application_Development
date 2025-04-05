@@ -38,6 +38,7 @@ public class AddCategoryActivity extends AppCompatActivity {
         });
     }
 
+
     private void saveCategory() {
         String name = etCategoryName.getText().toString().trim();
         String description = etCategoryDescription.getText().toString().trim();

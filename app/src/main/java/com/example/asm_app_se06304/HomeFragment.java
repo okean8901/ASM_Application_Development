@@ -1,5 +1,6 @@
 package com.example.asm_app_se06304;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -24,7 +25,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
@@ -32,7 +32,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentResultListener;
 
 import com.example.asm_app_se06304.DataBase.DatabaseContext;
-import com.example.asm_app_se06304.adapter.ExpenseCategoryAdapter;
+import com.example.asm_app_se06304.adapter.CategoryAdapter;
 import com.example.asm_app_se06304.model.Category;
 
 import java.text.DecimalFormat;
@@ -49,7 +49,7 @@ public class HomeFragment extends Fragment {
     private TextView tvTotalBudget, tvTotalSpent, tvRemainingBudget, tvBudgetPercentage, tvSeeAll;
     private DatabaseContext db;
     private int userId = 1;
-    private ExpenseCategoryAdapter adapter;
+    private CategoryAdapter adapter;
     private List<Category> expenseCategories;
 
     // Notification variables
@@ -89,7 +89,7 @@ public class HomeFragment extends Fragment {
         // Thêm phần này ngay sau khi khởi tạo view
         checkAndRequestNotificationPermissionFirstTime();
 
-        adapter = new ExpenseCategoryAdapter(requireActivity(), expenseCategories);
+        adapter = new CategoryAdapter(requireActivity(), expenseCategories);
         listExpenseCategories.setAdapter(adapter);
 
         ArrayAdapter<String> monthAdapter = new ArrayAdapter<>(requireActivity(),
@@ -199,23 +199,37 @@ public class HomeFragment extends Fragment {
         int month = Integer.parseInt(spinnerMonth.getSelectedItem().toString());
         int year = Integer.parseInt(spinnerYear.getSelectedItem().toString());
 
+        // Load expenses
         expenseCategories = db.getExpensesByMonth(userId, month, year);
         adapter.updateCategories(expenseCategories);
 
+        // Calculate total spent
         double totalSpent = 0;
         for (Category category : expenseCategories) {
             totalSpent += category.getTotalAmount();
         }
 
-        double totalBudget = db.getTotalBudget(userId);
+        // Get total budget for the selected month and year
+        double totalBudget = db.getTotalBudgetByMonth(userId, month, year);
         double remainingBudget = totalBudget - totalSpent;
-        double budgetPercentage = totalBudget == 0 ? 0 : (totalSpent / totalBudget) * 100;
 
+        // Calculate percentage (handle division by zero)
+        double budgetPercentage = 0;
+        if (totalBudget > 0) {
+            budgetPercentage = (totalSpent / totalBudget) * 100;
+        }
+
+        // Update TextViews
         DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
-        tvTotalBudget.setText("Total budget: " + formatter.format(totalBudget));
-        tvTotalSpent.setText("Total expense: " + formatter.format(totalSpent));
-        tvRemainingBudget.setText("Remaining budget: " + formatter.format(remainingBudget));
-        tvBudgetPercentage.setText(String.format("%.2f%% Used budget", budgetPercentage));
+        tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(totalBudget));
+        tvTotalSpent.setText("Tổng chi tiêu: " + formatter.format(totalSpent));
+        tvRemainingBudget.setText("Ngân sách còn lại: " + formatter.format(remainingBudget));
+
+        if (totalBudget > 0) {
+            tvBudgetPercentage.setText(String.format("%.2f%% ngân sách đã sử dụng", budgetPercentage));
+        } else {
+            tvBudgetPercentage.setText("Không có ngân sách cho tháng này");
+        }
 // Check and send notifications
         checkBudgetAndSendNotification(totalBudget, totalSpent, remainingBudget);
     }
@@ -244,6 +258,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void sendNotification(String title, String message) {
 // Kiểm tra quyền trước khi gửi
         if (!canSendNotification()) {
