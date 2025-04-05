@@ -12,11 +12,11 @@ import com.example.asm_app_se06304.model.Category;
 import java.text.DecimalFormat;
 import java.util.List;
 
-public class ExpenseCategoryAdapter extends ArrayAdapter<Category> {
+public class CategoryAdapter extends ArrayAdapter<Category> {
 
     private List<Category> categories;
 
-    public ExpenseCategoryAdapter(Context context, List<Category> categories) {
+    public CategoryAdapter(Context context, List<Category> categories) {
         super(context, 0, categories);
         this.categories = categories;
     }

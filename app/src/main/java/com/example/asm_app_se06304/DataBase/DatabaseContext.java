@@ -52,7 +52,7 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public static final String BUDGET_AMOUNT_COL = "amount";
     public static final String BUDGET_CATEGORY_ID_COL = "category_id";
     public static final String BUDGET_USER_ID_COL = "user_id";
-    private static final String BUDGET_DATETIME_COL = "budget_date";
+    public static final String BUDGET_DATETIME_COL = "budget_date";
 
     public DatabaseContext(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DB_VERSION);
@@ -206,6 +206,30 @@ public class DatabaseContext extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return expenses;
+    }
+
+    public double getTotalBudgetByMonth(int userId, int month, int year) {
+        double totalBudget = 0;
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        // Query to sum budgets for the selected month and year
+        String query = "SELECT SUM(" + BUDGET_AMOUNT_COL + ") FROM " + BUDGETS_TABLE +
+                " WHERE " + BUDGET_USER_ID_COL + " = ?" +
+                " AND strftime('%m', " + BUDGET_DATETIME_COL + ") = ?" +
+                " AND strftime('%Y', " + BUDGET_DATETIME_COL + ") = ?";
+
+        Cursor cursor = db.rawQuery(query, new String[]{
+                String.valueOf(userId),
+                String.format("%02d", month),
+                String.valueOf(year)
+        });
+
+        if (cursor.moveToFirst()) {
+            totalBudget = cursor.getDouble(0); // Get the sum
+        }
+        cursor.close();
+        db.close();
+        return totalBudget;
     }
 
     public double getTotalBudget(int userId) {
