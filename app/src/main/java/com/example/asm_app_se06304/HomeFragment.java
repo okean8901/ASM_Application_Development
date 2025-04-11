@@ -360,10 +360,10 @@ public class HomeFragment extends Fragment {
 
     private void showPermissionDeniedDialog() {
         new AlertDialog.Builder(requireContext())
-                .setTitle("Quyền thông báo bị từ chối")
-                .setMessage("Vui lòng bật quyền trong Cài đặt để nhận cảnh báo quan trọng")
-                .setPositiveButton("Mở Cài đặt", (d, w) -> openAppSettings())
-                .setNegativeButton("Để sau", null)
+                .setTitle("Right to notice denied")
+                .setMessage("Please enable permission in Settings to receive important alerts")
+                .setPositiveButton("Open Settings", (d, w) -> openAppSettings())
+                .setNegativeButton("Later", null)
                 .show();
     }
 
