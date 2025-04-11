@@ -1,22 +1,38 @@
 package com.example.asm_app_se06304;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.example.asm_app_se06304.DataBase.DatabaseContext;
+import java.util.ArrayList;
+import java.util.List;
+import androidx.fragment.app.FragmentManager;
 
 public class AddCategoryActivity extends AppCompatActivity {
+    public static final String CATEGORY_UPDATED = "com.example.asm_app_se06304.CATEGORY_UPDATED";
     private EditText etCategoryName, etCategoryDescription;
     private RadioGroup rgCategoryType;
     private Button btnSaveCategory;
+    private boolean isEditing = false;
+    private int currentEditCategoryId = -1; // Track which category is being edited
+    private ListView lvExistingCategories;
     private DatabaseContext dbContext;
-    private int userId = 1; // Giả sử user hiện tại có ID = 1
+    private int userId = 1;
+    private ArrayAdapter<String> categoryAdapter;
+    private List<String> categoryList;
+    private List<Integer> categoryIds; // To store category IDs for reference
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,11 +40,24 @@ public class AddCategoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_category);
 
         dbContext = new DatabaseContext(this);
+        categoryList = new ArrayList<>();
+        categoryIds = new ArrayList<>();
 
+        // Initialize views
         etCategoryName = findViewById(R.id.etCategoryName);
         etCategoryDescription = findViewById(R.id.etCategoryDescription);
         rgCategoryType = findViewById(R.id.rgCategoryType);
         btnSaveCategory = findViewById(R.id.btnSaveCategory);
+        lvExistingCategories = findViewById(R.id.lvExistingCategories);
+
+        // Setup ListView adapter
+        categoryAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1,
+                categoryList);
+        lvExistingCategories.setAdapter(categoryAdapter);
+
+        // Load existing categories
+        loadExistingCategories();
 
         btnSaveCategory.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -36,8 +65,47 @@ public class AddCategoryActivity extends AppCompatActivity {
                 saveCategory();
             }
         });
+
+        // Add long click listener for delete/edit functionality
+        lvExistingCategories.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                showOptionsDialog(position);
+                return true;
+            }
+        });
     }
 
+    private void loadExistingCategories() {
+        // Clear current lists
+        categoryList.clear();
+        categoryIds.clear();
+
+        // Get all categories from database
+        SQLiteDatabase db = dbContext.getReadableDatabase();
+        Cursor cursor = db.query(
+                DatabaseContext.CATEGORIES_TABLE,
+                new String[]{DatabaseContext.CATEGORY_ID_COL, DatabaseContext.NAME},
+                DatabaseContext.USER_ID_COL + " = ?",
+                new String[]{String.valueOf(userId)},
+                null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                int categoryId = cursor.getInt(0);
+                String categoryName = cursor.getString(1);
+
+                // Store both ID and name
+                categoryIds.add(categoryId);
+                categoryList.add(categoryName);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+
+        // Notify adapter
+        categoryAdapter.notifyDataSetChanged();
+    }
 
     private void saveCategory() {
         String name = etCategoryName.getText().toString().trim();
@@ -49,17 +117,123 @@ public class AddCategoryActivity extends AppCompatActivity {
             return;
         }
 
-        // Thêm tiền tố và loại bỏ khoảng trắng
+        // Add prefix and remove spaces
         String prefix = (selectedType == R.id.rbIncome ? "Income_" : "Expense_");
         String fullCategoryName = prefix + name.replace(" ", "_");
 
-        long result = dbContext.addCategory(userId, fullCategoryName, description);
+        if (isEditing) {
+            // Update existing category
+            long result = dbContext.updateCategory(
+                    currentEditCategoryId,
+                    fullCategoryName,
+                    description
+            );
 
-        if (result != -1) {
-            Toast.makeText(this, "Category added successfully", Toast.LENGTH_SHORT).show();
-            finish();
+            if (result > 0) {
+                Toast.makeText(this, "Category updated successfully", Toast.LENGTH_SHORT).show();
+                resetForm();
+                loadExistingCategories();
+                // Send result to fragments
+                sendCategoryUpdateResult();
+            } else {
+                Toast.makeText(this, "Failed to update category", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            Toast.makeText(this, "Failed to add category", Toast.LENGTH_SHORT).show();
+            // Add new category
+            long result = dbContext.addCategory(userId, fullCategoryName, description);
+
+            if (result != -1) {
+                Toast.makeText(this, "Category added successfully", Toast.LENGTH_SHORT).show();
+                resetForm();
+                loadExistingCategories();
+                // Send result to fragments
+                sendCategoryUpdateResult();
+            } else {
+                Toast.makeText(this, "Failed to add category", Toast.LENGTH_SHORT).show();
+            }
         }
     }
+
+    private void resetForm() {
+        etCategoryName.setText("");
+        etCategoryDescription.setText("");
+        rgCategoryType.check(R.id.rbExpense); // Reset to default
+        isEditing = false;
+        currentEditCategoryId = -1;
+        btnSaveCategory.setText("Save Category"); // Reset button text
+    }
+
+    private void showOptionsDialog(final int position) {
+        new AlertDialog.Builder(this)
+                .setTitle("Category Options")
+                .setItems(new String[]{"Edit", "Delete"}, (dialog, which) -> {
+                    if (which == 0) {
+                        editCategory(position); // Edit
+                    } else {
+                        deleteCategory(position); // Delete
+                    }
+                })
+                .show();
+    }
+
+    private void editCategory(int position) {
+        currentEditCategoryId = categoryIds.get(position);
+        String fullCategoryName = categoryList.get(position);
+
+        // Determine the type (Income/Expense)
+        boolean isIncome = fullCategoryName.startsWith("Income_");
+        String displayName = fullCategoryName.substring(fullCategoryName.indexOf('_') + 1);
+
+        // Set the radio button
+        rgCategoryType.check(isIncome ? R.id.rbIncome : R.id.rbExpense);
+
+        // Set the name (without prefix)
+        etCategoryName.setText(displayName.replace("_", " "));
+
+        // Load description (if available)
+        String description = dbContext.getCategoryDescription(currentEditCategoryId);
+        if (description != null) {
+            etCategoryDescription.setText(description);
+        }
+
+        // Update UI for editing mode
+        isEditing = true;
+        btnSaveCategory.setText("Update Category");
+        Toast.makeText(this, "Editing: " + displayName, Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteCategory(int position) {
+        int categoryId = categoryIds.get(position);
+        String categoryName = categoryList.get(position);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Category")
+                .setMessage("Are you sure you want to delete '" + categoryName + "'?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    long result = dbContext.deleteCategory(categoryId);
+                    if (result > 0) {
+                        Toast.makeText(this, "Category deleted", Toast.LENGTH_SHORT).show();
+                        loadExistingCategories();
+                        // Send result to fragments
+                        sendCategoryUpdateResult();
+                    } else {
+                        Toast.makeText(this, "Failed to delete category", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+    private void sendCategoryUpdateResult() {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("category_updated", true);
+        setResult(RESULT_OK, resultIntent);
+
+        // Also send via FragmentManager for fragments that might be listening
+        if (getSupportFragmentManager() != null) {
+            Bundle result = new Bundle();
+            result.putBoolean("category_updated", true);
+            getSupportFragmentManager().setFragmentResult("category_update", result);
+        }
+    }
+
 }

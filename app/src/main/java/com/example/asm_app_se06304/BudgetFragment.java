@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.example.asm_app_se06304.DataBase.DatabaseContext;
@@ -62,6 +63,17 @@ public class BudgetFragment extends Fragment {
         super.onCreate(savedInstanceState);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshCategories();
+        setupCategorySpinner(-1);
+    }
+
+    private void refreshCategories() {
+        setupCategorySpinner(-1); // Refresh with no selected category
+    }
+
     @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -87,6 +99,22 @@ public class BudgetFragment extends Fragment {
         } else {
             setupCategorySpinner(-1);
         }
+
+        // Listen for category updates
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
+            if (isVisible()) { // Only refresh if fragment is currently visible
+                String categoryType = bundle.getString("category_type");
+                if ("Income".equals(categoryType)) {
+                    refreshCategories();
+                }
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                setupCategorySpinner(-1); // Refresh the category spinner
+            }
+        });
 
         etDate.setOnClickListener(v -> showDatePicker());
         btnSave.setOnClickListener(v -> saveBudget());

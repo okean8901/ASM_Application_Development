@@ -59,15 +59,22 @@ public class HomeFragment extends Fragment {
     private static final long NOTIFICATION_COOLDOWN = 10 * 60 * 1000; // 10 minutes
     private boolean notificationsEnabled = true;
 
-
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseContext(requireActivity());
         expenseCategories = new ArrayList<>();
-
-        // Create notification channel
         createNotificationChannel();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshData();
+    }
+
+    private void refreshData() {
+        loadExpenses();
     }
 
     @Nullable
@@ -75,7 +82,6 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
-
 
         listExpenseCategories = view.findViewById(R.id.list_expense_categories);
         spinnerMonth = view.findViewById(R.id.spinner_month);
@@ -86,7 +92,6 @@ public class HomeFragment extends Fragment {
         tvBudgetPercentage = view.findViewById(R.id.tv_budget_percentage);
         tvSeeAll = view.findViewById(R.id.see_all_button);
 
-        // Thêm phần này ngay sau khi khởi tạo view
         checkAndRequestNotificationPermissionFirstTime();
 
         adapter = new CategoryAdapter(requireActivity(), expenseCategories);
@@ -126,18 +131,34 @@ public class HomeFragment extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        getParentFragmentManager().setFragmentResultListener("requestKey",
-                this, new FragmentResultListener() {
-            @Override
-            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
-                if (result.getBoolean("expense_added", false) || result.getBoolean(
-                        "budget_added", false)) {
-                    loadExpenses();
-                }
+        // Listen for expense/budget updates
+        getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, result) -> {
+            if (result.getBoolean("expense_added", false) || result.getBoolean("budget_added", false)) {
+                loadExpenses();
             }
         });
 
-        // Xử lý sự kiện nhấn "See All"
+        // Listen for category updates
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
+            if (isVisible()) {
+                loadExpenses();
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, result) -> {
+            if (result.getBoolean("expense_added", false) ||
+                    result.getBoolean("budget_added", false) ||
+                    result.getBoolean("category_updated", false)) {
+                loadExpenses();
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                loadExpenses();
+            }
+        });
+
         tvSeeAll.setOnClickListener(v -> {
             TransactionListFragment fragment = new TransactionListFragment();
             requireActivity().getSupportFragmentManager()
@@ -147,7 +168,6 @@ public class HomeFragment extends Fragment {
                     .commit();
         });
 
-        // Set up notification toggle
         ImageView notificationIcon = view.findViewById(R.id.notificationIcon);
         SharedPreferences prefs = requireActivity().getSharedPreferences(NOTIFICATION_PREFS, Context.MODE_PRIVATE);
         notificationsEnabled = prefs.getBoolean("notificationsEnabled", true);
@@ -177,7 +197,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-
     private List<String> getMonths() {
         List<String> months = new ArrayList<>();
         for (int i = 1; i <= 12; i++) {
@@ -199,27 +218,18 @@ public class HomeFragment extends Fragment {
         int month = Integer.parseInt(spinnerMonth.getSelectedItem().toString());
         int year = Integer.parseInt(spinnerYear.getSelectedItem().toString());
 
-        // Load expenses
         expenseCategories = db.getExpensesByMonth(userId, month, year);
         adapter.updateCategories(expenseCategories);
 
-        // Calculate total spent
         double totalSpent = 0;
         for (Category category : expenseCategories) {
             totalSpent += category.getTotalAmount();
         }
 
-        // Get total budget for the selected month and year
         double totalBudget = db.getTotalBudgetByMonth(userId, month, year);
         double remainingBudget = totalBudget - totalSpent;
+        double budgetPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
-        // Calculate percentage (handle division by zero)
-        double budgetPercentage = 0;
-        if (totalBudget > 0) {
-            budgetPercentage = (totalSpent / totalBudget) * 100;
-        }
-
-        // Update TextViews
         DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
         tvTotalBudget.setText("Tổng ngân sách: " + formatter.format(totalBudget));
         tvTotalSpent.setText("Tổng chi tiêu: " + formatter.format(totalSpent));
@@ -230,7 +240,7 @@ public class HomeFragment extends Fragment {
         } else {
             tvBudgetPercentage.setText("Không có ngân sách cho tháng này");
         }
-// Check and send notifications
+
         checkBudgetAndSendNotification(totalBudget, totalSpent, remainingBudget);
     }
 
@@ -242,13 +252,11 @@ public class HomeFragment extends Fragment {
         double lastNotifiedState = Double.longBitsToDouble(prefs.getLong(LAST_BUDGET_STATE, Double.doubleToLongBits(0)));
         long currentTime = System.currentTimeMillis();
 
-        // Check cooldown and budget state
         if (currentTime - lastNotificationTime < NOTIFICATION_COOLDOWN &&
                 remainingBudget == lastNotifiedState) {
             return;
         }
 
-        // Check notification conditions
         if (remainingBudget < 0) {
             sendNotification("Budget Alert", "You have exceeded your budget!");
             saveNotificationState(currentTime, remainingBudget);
@@ -260,10 +268,8 @@ public class HomeFragment extends Fragment {
 
     @SuppressLint("MissingPermission")
     private void sendNotification(String title, String message) {
-// Kiểm tra quyền trước khi gửi
         if (!canSendNotification()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // Hiển thị hướng dẫn nếu đã từ chối trước đó
                 if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
                     showPermissionDeniedDialog();
                     return;
@@ -273,7 +279,6 @@ public class HomeFragment extends Fragment {
             return;
         }
 
-        // Build notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext(), "budget_notification_channel")
                 .setSmallIcon(R.drawable.ic_notifications)
                 .setContentTitle(title)
@@ -281,7 +286,6 @@ public class HomeFragment extends Fragment {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true);
 
-        // Show notification
         NotificationManagerCompat.from(requireContext()).notify(2, builder.build());
     }
 
@@ -332,11 +336,10 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == 100 || requestCode == 200) { // Cập nhật để xử lý cả 2 trường hợp
+        if (requestCode == 100 || requestCode == 200) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, có thể gửi thông báo ngay nếu cần
                 loadExpenses();
-            } else if (requestCode == 200) { // Chỉ hiển thị với yêu cầu lần đầu
+            } else if (requestCode == 200) {
                 Toast.makeText(requireContext(),
                         "You can enable permissions in Settings > Apps > " + getString(R.string.app_name),
                         Toast.LENGTH_LONG).show();
@@ -349,21 +352,18 @@ public class HomeFragment extends Fragment {
         boolean isFirstTime = prefs.getBoolean("is_first_time", true);
 
         if (isFirstTime && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Đánh dấu đã mở ứng dụng lần đầu
             prefs.edit().putBoolean("is_first_time", false).apply();
 
-            // Kiểm tra và yêu cầu quyền
             if (ContextCompat.checkSelfPermission(requireContext(),
                     Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
 
-                // Hiển thị giải thích trước khi yêu cầu
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Important Notice")
                         .setMessage("To receive budget alerts, please grant notification permissions.")
                         .setPositiveButton("Agree", (dialog, which) -> {
                             requestPermissions(
                                     new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                                    200 // Sử dụng request code khác với các yêu cầu sau này
+                                    200
                             );
                         })
                         .setNegativeButton("Later", null)

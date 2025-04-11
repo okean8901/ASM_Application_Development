@@ -68,13 +68,19 @@ public class ExpensesFragment extends Fragment {
         db = new DatabaseContext(requireActivity());
     }
 
+
+
+    private void refreshCategories() {
+        setupCategorySpinner(-1); // Refresh with no selected category
+        loadRemainingBudget(); // Also refresh the budget display
+    }
+
     @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_expenses, container, false);
 
-        // Initialize views
         etDescription = view.findViewById(R.id.et_description);
         etAmount = view.findViewById(R.id.et_amount);
         etDate = view.findViewById(R.id.et_date);
@@ -84,7 +90,6 @@ public class ExpensesFragment extends Fragment {
 
         categoryMap = new HashMap<>();
 
-        // Handle arguments if editing existing expense
         Bundle args = getArguments();
         if (args != null && args.containsKey("expenseId")) {
             expenseId = args.getLong("expenseId", -1);
@@ -97,11 +102,27 @@ public class ExpensesFragment extends Fragment {
             setupCategorySpinner(-1);
         }
 
-        // Set up listeners
+        // Listen for category updates
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
+            if (isVisible()) { // Only refresh if fragment is currently visible
+                String categoryType = bundle.getString("category_type");
+                if ("Expense".equals(categoryType)) {
+                    refreshCategories();
+                }
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                setupCategorySpinner(-1); // Refresh the category spinner
+                loadRemainingBudget(); // Also refresh the budget display
+            }
+        });
+
         etDate.setOnClickListener(v -> showDatePicker());
         btnSave.setOnClickListener(v -> saveExpense());
 
-        // Listen for budget updates from other fragments
+        // Listen for budget updates
         getParentFragmentManager().setFragmentResultListener("budget_update", this, (requestKey, result) -> {
             if (result.getBoolean("budget_added", false)) {
                 loadRemainingBudget();
@@ -115,6 +136,8 @@ public class ExpensesFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadRemainingBudget();
+        setupCategorySpinner(-1);
+        refreshCategories();
     }
 
     private void loadRemainingBudget() {
@@ -130,28 +153,16 @@ public class ExpensesFragment extends Fragment {
             return;
         }
 
-        // Get the expense category ID
         int expenseCategoryId = categoryMap.get(selectedCategoryDisplay);
-
-        // Get corresponding income category ID
         int incomeCategoryId = getIncomeCategoryId(selectedCategoryDisplay);
 
         if (incomeCategoryId == -1) {
-            showRemainingBudget(0); // No matching income category found
+            showRemainingBudget(0);
             return;
         }
 
-        DecimalFormat formatter = new DecimalFormat("#,### VNĐ");
-
-        // 1. Get total budget for the income category
         double totalBudget = getTotalBudget(incomeCategoryId);
-
-
-        // 2. Get total expenses for the expense category
         double totalExpenses = getTotalExpenses(expenseCategoryId);
-
-
-        // 3. Calculate remaining budget
         double remaining = totalBudget - totalExpenses;
         showRemainingBudget(remaining);
     }
@@ -248,7 +259,6 @@ public class ExpensesFragment extends Fragment {
                 index++;
             } while (cursor.moveToNext());
         } else {
-            // Default expense categories
             String[] defaultCategories = {"-- None --"};
             for (int i = 0; i < defaultCategories.length; i++) {
                 categories.add(defaultCategories[i]);
@@ -271,7 +281,6 @@ public class ExpensesFragment extends Fragment {
             spinnerCategory.setSelection(selectedPosition);
         }
 
-        // Add listener for category selection changes
         spinnerCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -284,7 +293,6 @@ public class ExpensesFragment extends Fragment {
             }
         });
 
-        // Load initial data
         spinnerCategory.post(() -> loadRemainingBudget());
     }
 
@@ -350,7 +358,7 @@ public class ExpensesFragment extends Fragment {
             Toast.makeText(requireActivity(),
                     expenseId == -1 ? "Expense added" : "Expense updated",
                     Toast.LENGTH_SHORT).show();
-            loadRemainingBudget(); // Refresh the remaining budget display
+            loadRemainingBudget();
             clearInputs();
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
