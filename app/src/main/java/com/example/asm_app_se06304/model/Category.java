@@ -11,6 +11,7 @@ public class Category {
         this.color = color;
     }
 
+
     public String getCategoryName() {
         return categoryName;
     }

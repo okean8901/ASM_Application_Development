@@ -208,6 +208,29 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return expenses;
     }
 
+
+    public List<String> getAllCategories(int userId) {
+        List<String> categories = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                CATEGORIES_TABLE,
+                new String[]{NAME},
+                USER_ID_COL + " = ?",
+                new String[]{String.valueOf(userId)},
+                null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                categories.add(cursor.getString(0));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+
+        return categories;
+    }
+
     public double getTotalBudgetByMonth(int userId, int month, int year) {
         double totalBudget = 0;
         SQLiteDatabase db = this.getReadableDatabase();
@@ -359,6 +382,8 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return result;
     }
 
+
+
     public List<Budget> getAllBudgets(int userId) {
         List<Budget> budgets = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -384,6 +409,54 @@ public class DatabaseContext extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return budgets;
+    }
+
+    // Update a category
+    public long updateCategory(int categoryId, String newName, String newDescription) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(NAME, newName);
+        values.put(DESCRIPTION, newDescription);
+
+        long result = db.update(
+                CATEGORIES_TABLE,
+                values,
+                CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)}
+        );
+        db.close();
+        return result; // Returns number of rows affected
+    }
+
+    public String getCategoryDescription(int categoryId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                CATEGORIES_TABLE,
+                new String[]{DESCRIPTION},
+                CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)},
+                null, null, null
+        );
+
+        String description = null;
+        if (cursor.moveToFirst()) {
+            description = cursor.getString(0);
+        }
+        cursor.close();
+        db.close();
+        return description;
+    }
+
+    // Delete a category
+    public long deleteCategory(int categoryId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long result = db.delete(
+                CATEGORIES_TABLE,
+                CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)}
+        );
+        db.close();
+        return result; // Returns number of rows deleted
     }
 
     public long deleteExpense(long expenseId) {

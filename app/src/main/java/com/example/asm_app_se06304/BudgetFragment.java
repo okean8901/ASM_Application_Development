@@ -67,6 +67,7 @@ public class BudgetFragment extends Fragment {
     public void onResume() {
         super.onResume();
         refreshCategories();
+        setupCategorySpinner(-1);
     }
 
     private void refreshCategories() {
@@ -106,6 +107,12 @@ public class BudgetFragment extends Fragment {
                 if ("Income".equals(categoryType)) {
                     refreshCategories();
                 }
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                setupCategorySpinner(-1); // Refresh the category spinner
             }
         });
 

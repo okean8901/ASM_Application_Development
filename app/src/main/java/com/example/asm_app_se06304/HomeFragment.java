@@ -145,6 +145,20 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, result) -> {
+            if (result.getBoolean("expense_added", false) ||
+                    result.getBoolean("budget_added", false) ||
+                    result.getBoolean("category_updated", false)) {
+                loadExpenses();
+            }
+        });
+
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                loadExpenses();
+            }
+        });
+
         tvSeeAll.setOnClickListener(v -> {
             TransactionListFragment fragment = new TransactionListFragment();
             requireActivity().getSupportFragmentManager()

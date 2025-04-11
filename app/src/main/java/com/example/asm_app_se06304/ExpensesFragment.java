@@ -112,6 +112,13 @@ public class ExpensesFragment extends Fragment {
             }
         });
 
+        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
+            if (result.getBoolean("category_updated", false)) {
+                setupCategorySpinner(-1); // Refresh the category spinner
+                loadRemainingBudget(); // Also refresh the budget display
+            }
+        });
+
         etDate.setOnClickListener(v -> showDatePicker());
         btnSave.setOnClickListener(v -> saveExpense());
 
@@ -129,6 +136,7 @@ public class ExpensesFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadRemainingBudget();
+        setupCategorySpinner(-1);
         refreshCategories();
     }
 

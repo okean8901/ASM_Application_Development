@@ -56,4 +56,19 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="Save Category"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Existing Categories:"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"/>
+
+    <ListView
+        android:id="@+id/lvExistingCategories"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="1dp" />
 </LinearLayout>
