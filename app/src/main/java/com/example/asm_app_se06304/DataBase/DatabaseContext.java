@@ -387,24 +387,32 @@ public class DatabaseContext extends SQLiteOpenHelper {
     public List<Budget> getAllBudgets(int userId) {
         List<Budget> budgets = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT " + BUDGET_ID_COL + ", " + BUDGET_DESCRIPTION_COL + ", " + BUDGET_AMOUNT_COL + ", " + BUDGET_DATETIME_COL +
-                " FROM " + BUDGETS_TABLE +
-                " WHERE " + BUDGET_USER_ID_COL + " = ?";
+        String query = "SELECT b." + BUDGET_ID_COL + ", b." + BUDGET_DESCRIPTION_COL + ", " +
+                "b." + BUDGET_AMOUNT_COL + ", b." + BUDGET_DATETIME_COL + ", " +
+                "b." + BUDGET_CATEGORY_ID_COL + ", c." + NAME +
+                " FROM " + BUDGETS_TABLE + " b" +
+                " JOIN " + CATEGORIES_TABLE + " c ON b." + BUDGET_CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE b." + BUDGET_USER_ID_COL + " = ?";
 
         Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId)});
-        Log.d("DatabaseContext", "getAllBudgets: Cursor count = " + cursor.getCount());
         if (cursor.moveToFirst()) {
             do {
                 long id = cursor.getLong(0);
                 String description = cursor.getString(1);
                 double amount = cursor.getDouble(2);
                 String date = cursor.getString(3);
+                int categoryId = cursor.getInt(4);
+                String fullCategoryName = cursor.getString(5);
+
+                // Remove prefix from category name
+                String displayCategoryName = fullCategoryName;
+                if (fullCategoryName.startsWith("Income_") || fullCategoryName.startsWith("Expense_")) {
+                    displayCategoryName = fullCategoryName.substring(fullCategoryName.indexOf('_') + 1);
+                }
+
                 String budgetId = String.valueOf(id);
-                Log.d("DatabaseContext", "Budget: id=" + id + ", desc=" + description + ", amount=" + amount + ", date=" + date);
-                budgets.add(new Budget(description, amount, date, budgetId));
+                budgets.add(new Budget(description, amount, date, budgetId, categoryId, displayCategoryName));
             } while (cursor.moveToNext());
-        } else {
-            Log.d("DatabaseContext", "No budgets found for userId=" + userId);
         }
         cursor.close();
         db.close();
@@ -584,6 +592,147 @@ public class DatabaseContext extends SQLiteOpenHelper {
 
         db.close();
         return changes;
+    }
+
+    public List<Expense> getExpensesByCategory(int userId, int categoryId) {
+        List<Expense> expenses = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT e." + EXPENSE_ID_COL + ", e." + EXPENSE_DESCRIPTION_COL +
+                ", e." + EXPENSE_AMOUNT_COL + ", e." + EXPENSE_DATE_COL +
+                ", c." + NAME + ", e." + CATEGORY_ID_COL +
+                " FROM " + EXPENSES_TABLE + " e" +
+                " JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL +
+                " WHERE e." + USER_ID_COL + " = ? AND e." + CATEGORY_ID_COL + " = ?";
+
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId), String.valueOf(categoryId)});
+
+        if (cursor.moveToFirst()) {
+            do {
+                long id = cursor.getLong(0);
+                String description = cursor.getString(1);
+                double amount = cursor.getDouble(2);
+                String date = cursor.getString(3);
+                String fullCategoryName = cursor.getString(4);
+                int catId = cursor.getInt(5);
+
+                // Remove prefix from category name
+                String displayCategoryName = fullCategoryName;
+                if (fullCategoryName.startsWith("Income_") || fullCategoryName.startsWith("Expense_")) {
+                    displayCategoryName = fullCategoryName.substring(fullCategoryName.indexOf('_') + 1);
+                }
+
+                expenses.add(new Expense(id, description, amount, date, displayCategoryName, catId));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return expenses;
+    }
+
+    public int deleteExpensesByCategory(int userId, int categoryId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int count = db.delete(
+                EXPENSES_TABLE,
+                USER_ID_COL + " = ? AND " + CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(userId), String.valueOf(categoryId)}
+        );
+        db.close();
+        return count;
+    }
+
+    public int getBudgetCategoryId(long budgetId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        int categoryId = -1;
+
+        Cursor cursor = db.query(
+                BUDGETS_TABLE,
+                new String[]{BUDGET_CATEGORY_ID_COL},
+                BUDGET_ID_COL + " = ?",
+                new String[]{String.valueOf(budgetId)},
+                null, null, null
+        );
+
+        if (cursor.moveToFirst()) {
+            categoryId = cursor.getInt(0);
+        }
+        cursor.close();
+        db.close();
+        return categoryId;
+    }
+
+
+    // Extract the suffix after the first underscore
+    private String getCategorySuffix(String fullName) {
+        if (fullName == null) return "";
+        int underscoreIndex = fullName.indexOf('_');
+        return underscoreIndex >= 0 ? fullName.substring(underscoreIndex + 1) : fullName;
+    }
+
+    // Check if any expenses share the same suffix as this budget's category
+    public boolean hasExpensesWithSameSuffix(int userId, long budgetId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        // First get the budget's category suffix
+        String budgetSuffixQuery = "SELECT c." + NAME + " FROM " + BUDGETS_TABLE + " b " +
+                "JOIN " + CATEGORIES_TABLE + " c ON b." + BUDGET_CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL + " " +
+                "WHERE b." + BUDGET_ID_COL + " = ?";
+
+        Cursor budgetCursor = db.rawQuery(budgetSuffixQuery, new String[]{String.valueOf(budgetId)});
+        String budgetSuffix = "";
+
+        if (budgetCursor.moveToFirst()) {
+            budgetSuffix = getCategorySuffix(budgetCursor.getString(0));
+        }
+        budgetCursor.close();
+
+        if (budgetSuffix.isEmpty()) return false;
+
+        // Now check for expenses with matching suffixes
+        String expenseQuery = "SELECT COUNT(*) FROM " + EXPENSES_TABLE + " e " +
+                "JOIN " + CATEGORIES_TABLE + " c ON e." + CATEGORY_ID_COL + " = c." + CATEGORY_ID_COL + " " +
+                "WHERE e." + USER_ID_COL + " = ? AND " +
+                "(c." + NAME + " LIKE '%_" + budgetSuffix + "' OR " +
+                "c." + NAME + " LIKE '" + budgetSuffix + "')";
+
+        Cursor expenseCursor = db.rawQuery(expenseQuery, new String[]{String.valueOf(userId)});
+        boolean hasMatches = false;
+
+        if (expenseCursor.moveToFirst()) {
+            hasMatches = expenseCursor.getInt(0) > 0;
+        }
+        expenseCursor.close();
+        db.close();
+
+        return hasMatches;
+    }
+
+
+    public String getCategoryDisplayName(int categoryId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String displayName = "";
+
+        Cursor cursor = db.query(
+                CATEGORIES_TABLE,
+                new String[]{NAME},
+                CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)},
+                null, null, null
+        );
+
+        if (cursor.moveToFirst()) {
+            String fullName = cursor.getString(0);
+            // Remove everything before and including the first underscore
+            int underscoreIndex = fullName.indexOf('_');
+            if (underscoreIndex >= 0 && underscoreIndex < fullName.length() - 1) {
+                displayName = fullName.substring(underscoreIndex + 1);
+            } else {
+                displayName = fullName; // No underscore or nothing after it
+            }
+        }
+        cursor.close();
+        db.close();
+        return displayName;
     }
 
 }
