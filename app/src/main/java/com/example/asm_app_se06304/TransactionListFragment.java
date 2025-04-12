@@ -6,7 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Toast;
-
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -115,20 +115,54 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
                     .addToBackStack(null)
                     .commit();
         }
+
+        // Notify HomeFragment that a transaction was edited
+        Bundle result = new Bundle();
+        result.putBoolean("transaction_updated", true);
+        getParentFragmentManager().setFragmentResult("transaction_update", result);
     }
 
     @Override
     public void onDelete(Transaction transaction) {
-        long result = -1;
         if (transaction.getType().equals("Budget")) {
-            result = db.deleteBudget(transaction.getId());
-        } else if (transaction.getType().equals("Expense")) {
-            result = db.deleteExpense(transaction.getId());
-        }
+            // Check if there are expenses with matching suffix
+            boolean hasMatchingExpenses = db.hasExpensesWithSameSuffix(userId, transaction.getId());
 
+            if (hasMatchingExpenses) {
+                // Get display name for the alert
+                String displayName = db.getCategoryDisplayName(transaction.getCategoryId());
+
+                new AlertDialog.Builder(requireActivity())
+                        .setTitle("Cannot Delete Budget")
+                        .setMessage("The '" + displayName + "' category has expenses. " +
+                                "Please delete all expenses first before deleting this budget.")
+                        .setPositiveButton("OK", null)
+                        .show();
+            } else {
+                // No matching expenses - safe to delete
+                deleteBudget(transaction);
+            }
+        } else if (transaction.getType().equals("Expense")) {
+            // Existing expense deletion logic
+            long result = db.deleteExpense(transaction.getId());
+            handleDeletionResult(result);
+        }
+    }
+
+    private void deleteBudget(Transaction transaction) {
+        long result = db.deleteBudget(transaction.getId());
+        handleDeletionResult(result);
+    }
+
+    private void handleDeletionResult(long result) {
         if (result > 0) {
             Toast.makeText(requireActivity(), "Transaction deleted", Toast.LENGTH_SHORT).show();
             loadTransactions();
+
+            // Notify HomeFragment that a transaction was deleted
+            Bundle resultBundle = new Bundle();
+            resultBundle.putBoolean("transaction_deleted", true);
+            getParentFragmentManager().setFragmentResult("transaction_update", resultBundle);
         } else {
             Toast.makeText(requireActivity(), "Error deleting transaction", Toast.LENGTH_SHORT).show();
         }

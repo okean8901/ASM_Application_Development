@@ -138,6 +138,13 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        getParentFragmentManager().setFragmentResultListener("transaction_update", this, (requestKey, bundle) -> {
+            if (bundle.getBoolean("transaction_deleted", false) ||
+                    bundle.getBoolean("transaction_updated", false)) {
+                loadExpenses();
+            }
+        });
+
         // Listen for category updates
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
             if (isVisible()) {

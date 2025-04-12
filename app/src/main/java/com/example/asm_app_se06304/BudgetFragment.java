@@ -71,7 +71,7 @@ public class BudgetFragment extends Fragment {
     }
 
     private void refreshCategories() {
-        setupCategorySpinner(-1); // Refresh with no selected category
+        setupCategorySpinner(-1);
     }
 
     @SuppressLint("MissingInflatedId")
@@ -100,19 +100,12 @@ public class BudgetFragment extends Fragment {
             setupCategorySpinner(-1);
         }
 
-        // Listen for category updates
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
-            if (isVisible()) { // Only refresh if fragment is currently visible
+            if (isVisible()) {
                 String categoryType = bundle.getString("category_type");
                 if ("Income".equals(categoryType)) {
                     refreshCategories();
                 }
-            }
-        });
-
-        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
-            if (result.getBoolean("category_updated", false)) {
-                setupCategorySpinner(-1); // Refresh the category spinner
             }
         });
 
@@ -130,7 +123,8 @@ public class BudgetFragment extends Fragment {
                 "SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
                         " FROM " + DatabaseContext.CATEGORIES_TABLE +
                         " WHERE " + DatabaseContext.USER_ID_COL + " = ? AND " +
-                        DatabaseContext.NAME + " LIKE 'Income_%'",
+                        "(" + DatabaseContext.NAME + " LIKE 'Income_%' OR " +
+                        DatabaseContext.NAME + " LIKE 'Income%')",
                 new String[]{String.valueOf(userId)}
         );
 
@@ -140,25 +134,30 @@ public class BudgetFragment extends Fragment {
             do {
                 int categoryId = cursor.getInt(0);
                 String fullName = cursor.getString(1);
-                String displayName = fullName.substring("Income_".length());
+                String displayName = fullName.startsWith("Income_") ?
+                        fullName.substring("Income_".length()) :
+                        fullName;
+
                 categories.add(displayName);
                 categoryMap.put(displayName, categoryId);
+
                 if (categoryId == selectedCategoryId) {
                     selectedPosition = index;
                 }
                 index++;
             } while (cursor.moveToNext());
-        } else {
-            // Default income categories
-            String[] defaultCategories = {"-- None --"};
-            for (int i = 0; i < defaultCategories.length; i++) {
-                categories.add(defaultCategories[i]);
-                categoryMap.put(defaultCategories[i], i + 1);
-            }
-            Toast.makeText(requireActivity(), "No income categories found, using defaults", Toast.LENGTH_LONG).show();
         }
         cursor.close();
         dbReadable.close();
+
+        if (categories.isEmpty()) {
+            String defaultCategory = "-- Select Category --";
+            categories.add(defaultCategory);
+            categoryMap.put(defaultCategory, -1);
+            Toast.makeText(requireActivity(),
+                    "No income categories found. Please create categories first.",
+                    Toast.LENGTH_LONG).show();
+        }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireActivity(),
@@ -168,7 +167,7 @@ public class BudgetFragment extends Fragment {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
-        if (selectedCategoryId != -1) {
+        if (selectedCategoryId != -1 && !categories.isEmpty()) {
             spinnerCategory.setSelection(selectedPosition);
         }
     }
@@ -194,6 +193,12 @@ public class BudgetFragment extends Fragment {
         String description = etDescription.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
         String date = etDate.getText().toString().trim();
+
+        if (spinnerCategory.getSelectedItem() == null) {
+            Toast.makeText(requireActivity(), "Please select a category", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String categoryDisplayName = spinnerCategory.getSelectedItem().toString();
 
         if (description.isEmpty() || amountStr.isEmpty() || date.isEmpty()) {
@@ -219,9 +224,29 @@ public class BudgetFragment extends Fragment {
         }
 
         Integer categoryId = categoryMap.get(categoryDisplayName);
-        if (categoryId == null) {
-            Toast.makeText(requireActivity(), "Invalid category", Toast.LENGTH_SHORT).show();
+        if (categoryId == null || categoryId == -1) {
+            Toast.makeText(requireActivity(), "Please select a valid category", Toast.LENGTH_SHORT).show();
             return;
+        }
+
+        // Check for duplicate budget only when creating new budget
+        if (budgetId == -1) {
+            SQLiteDatabase dbReadable = db.getReadableDatabase();
+            Cursor cursor = dbReadable.rawQuery(
+                    "SELECT 1 FROM " + DatabaseContext.BUDGETS_TABLE +
+                            " WHERE " + DatabaseContext.USER_ID_COL + " = ? AND " +
+                            DatabaseContext.CATEGORY_ID_COL + " = ?",
+                    new String[]{String.valueOf(userId), String.valueOf(categoryId)}
+            );
+
+            if (cursor.getCount() > 0) {
+                Toast.makeText(requireActivity(),
+                        "A budget already exists for this category. Please edit the existing budget instead.",
+                        Toast.LENGTH_LONG).show();
+                cursor.close();
+                return;
+            }
+            cursor.close();
         }
 
         long result;
@@ -233,7 +258,7 @@ public class BudgetFragment extends Fragment {
 
         if (result != -1) {
             Toast.makeText(requireActivity(),
-                    budgetId == -1 ? "Budget added" : "Budget updated",
+                    budgetId == -1 ? "Budget added successfully" : "Budget updated successfully",
                     Toast.LENGTH_SHORT).show();
             clearInputs();
             requireActivity().getSupportFragmentManager().popBackStack();
