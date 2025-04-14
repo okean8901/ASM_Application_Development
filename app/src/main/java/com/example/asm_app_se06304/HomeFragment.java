@@ -131,9 +131,11 @@ public class HomeFragment extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // Listen for expense/budget updates
+        // Listen for expense/budget/category updates
         getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, result) -> {
-            if (result.getBoolean("expense_added", false) || result.getBoolean("budget_added", false)) {
+            if (result.getBoolean("expense_added", false) ||
+                    result.getBoolean("budget_added", false) ||
+                    result.getBoolean("category_updated", false)) {
                 loadExpenses();
             }
         });
@@ -145,23 +147,9 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Listen for category updates
+// Listen for category updates
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
-            if (isVisible()) {
-                loadExpenses();
-            }
-        });
-
-        getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, result) -> {
-            if (result.getBoolean("expense_added", false) ||
-                    result.getBoolean("budget_added", false) ||
-                    result.getBoolean("category_updated", false)) {
-                loadExpenses();
-            }
-        });
-
-        getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
-            if (result.getBoolean("category_updated", false)) {
+            if (bundle.getBoolean("category_updated", false) || isVisible()) {
                 loadExpenses();
             }
         });

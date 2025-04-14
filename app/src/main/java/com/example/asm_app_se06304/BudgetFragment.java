@@ -37,6 +37,7 @@ public class BudgetFragment extends Fragment {
     private int userId = 1;
     private Map<String, Integer> categoryMap;
     private long budgetId = -1;
+    private int savedCategoryPosition = 0;
 
     public BudgetFragment() {
         // Required empty public constructor
@@ -61,6 +62,10 @@ public class BudgetFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        db = new DatabaseContext(requireActivity());
+        if (savedInstanceState != null) {
+            savedCategoryPosition = savedInstanceState.getInt("savedCategoryPosition", 0);
+        }
     }
 
     @Override
@@ -68,6 +73,14 @@ public class BudgetFragment extends Fragment {
         super.onResume();
         refreshCategories();
         setupCategorySpinner(-1);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (spinnerCategory != null) {
+            outState.putInt("savedCategoryPosition", spinnerCategory.getSelectedItemPosition());
+        }
     }
 
     private void refreshCategories() {
@@ -129,6 +142,7 @@ public class BudgetFragment extends Fragment {
         );
 
         int selectedPosition = 0;
+        boolean foundSelectedCategory = false;
         if (cursor.moveToFirst()) {
             int index = 0;
             do {
@@ -141,8 +155,10 @@ public class BudgetFragment extends Fragment {
                 categories.add(displayName);
                 categoryMap.put(displayName, categoryId);
 
+                // Check if this is the selected category
                 if (categoryId == selectedCategoryId) {
                     selectedPosition = index;
+                    foundSelectedCategory = true;
                 }
                 index++;
             } while (cursor.moveToNext());
@@ -167,8 +183,11 @@ public class BudgetFragment extends Fragment {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
-        if (selectedCategoryId != -1 && !categories.isEmpty()) {
+        // Only set selection if we found the category or if it's a new budget
+        if (foundSelectedCategory || selectedCategoryId == -1) {
             spinnerCategory.setSelection(selectedPosition);
+        } else if (savedCategoryPosition < adapter.getCount()) {
+            spinnerCategory.setSelection(savedCategoryPosition);
         }
     }
 
@@ -260,7 +279,17 @@ public class BudgetFragment extends Fragment {
             Toast.makeText(requireActivity(),
                     budgetId == -1 ? "Budget added successfully" : "Budget updated successfully",
                     Toast.LENGTH_SHORT).show();
-            clearInputs();
+
+            // Send result back to TransactionListFragment
+            Bundle resultBundle = new Bundle();
+            resultBundle.putBoolean("budget_updated", true);
+            getParentFragmentManager().setFragmentResult("budget_edit_result", resultBundle);
+
+            // Clear inputs but keep category selected
+            etDescription.setText("");
+            etAmount.setText("");
+            etDate.setText("");
+
             requireActivity().getSupportFragmentManager().popBackStack();
         } else {
             Toast.makeText(requireActivity(), "Error saving budget", Toast.LENGTH_SHORT).show();
@@ -272,6 +301,6 @@ public class BudgetFragment extends Fragment {
         etDescription.setText("");
         etAmount.setText("");
         etDate.setText("");
-        spinnerCategory.setSelection(0);
+        // Removed spinner reset to preserve category selection
     }
 }

@@ -96,6 +96,17 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
                     transaction.getDate(),
                     transaction.getCategoryId()
             );
+
+            // Set up a result listener for when the BudgetFragment finishes editing
+            getParentFragmentManager().setFragmentResultListener("budget_edit_result", this, (requestKey, bundle) -> {
+                if (bundle.getBoolean("budget_updated", false)) {
+                    // Notify HomeFragment that a transaction was edited
+                    Bundle result = new Bundle();
+                    result.putBoolean("transaction_updated", true);
+                    getParentFragmentManager().setFragmentResult("transaction_update", result);
+                }
+            });
+
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
@@ -109,17 +120,23 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
                     transaction.getDate(),
                     transaction.getCategoryId()
             );
+
+            // Set up a result listener for when the ExpensesFragment finishes editing
+            getParentFragmentManager().setFragmentResultListener("expense_edit_result", this, (requestKey, bundle) -> {
+                if (bundle.getBoolean("expense_updated", false)) {
+                    // Notify HomeFragment that a transaction was edited
+                    Bundle result = new Bundle();
+                    result.putBoolean("transaction_updated", true);
+                    getParentFragmentManager().setFragmentResult("transaction_update", result);
+                }
+            });
+
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
                     .addToBackStack(null)
                     .commit();
         }
-
-        // Notify HomeFragment that a transaction was edited
-        Bundle result = new Bundle();
-        result.putBoolean("transaction_updated", true);
-        getParentFragmentManager().setFragmentResult("transaction_update", result);
     }
 
     @Override
