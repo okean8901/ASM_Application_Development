@@ -37,6 +37,7 @@ public class BudgetFragment extends Fragment {
     private int userId = 1;
     private Map<String, Integer> categoryMap;
     private long budgetId = -1;
+    private int editCategoryId = -1; // Store the category ID for editing
     private int savedCategoryPosition = 0;
 
     public BudgetFragment() {
@@ -63,8 +64,18 @@ public class BudgetFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseContext(requireActivity());
+
+        // Get arguments for editing
+        Bundle args = getArguments();
+        if (args != null) {
+            budgetId = args.getLong("budgetId", -1);
+            editCategoryId = args.getInt("categoryId", -1);
+        }
+
         if (savedInstanceState != null) {
             savedCategoryPosition = savedInstanceState.getInt("savedCategoryPosition", 0);
+            budgetId = savedInstanceState.getLong("budgetId", -1);
+            editCategoryId = savedInstanceState.getInt("editCategoryId", -1);
         }
     }
 
@@ -72,19 +83,18 @@ public class BudgetFragment extends Fragment {
     public void onResume() {
         super.onResume();
         refreshCategories();
-        setupCategorySpinner(-1);
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (spinnerCategory != null) {
-            outState.putInt("savedCategoryPosition", spinnerCategory.getSelectedItemPosition());
-        }
+        outState.putInt("savedCategoryPosition", spinnerCategory.getSelectedItemPosition());
+        outState.putLong("budgetId", budgetId);
+        outState.putInt("editCategoryId", editCategoryId);
     }
 
     private void refreshCategories() {
-        setupCategorySpinner(-1);
+        setupCategorySpinner(editCategoryId);
     }
 
     @SuppressLint("MissingInflatedId")
@@ -107,11 +117,11 @@ public class BudgetFragment extends Fragment {
             etDescription.setText(args.getString("description", ""));
             etAmount.setText(String.valueOf(args.getDouble("amount", 0.0)));
             etDate.setText(args.getString("date", ""));
-            int categoryId = args.getInt("categoryId", -1);
-            setupCategorySpinner(categoryId);
-        } else {
-            setupCategorySpinner(-1);
+            editCategoryId = args.getInt("categoryId", -1);
         }
+
+        // Setup spinner with the correct category ID
+        setupCategorySpinner(editCategoryId);
 
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
             if (isVisible()) {
@@ -132,6 +142,11 @@ public class BudgetFragment extends Fragment {
         List<String> categories = new ArrayList<>();
         SQLiteDatabase dbReadable = db.getReadableDatabase();
 
+        // Log for debugging
+        if (selectedCategoryId > 0) {
+            Log.d("BudgetFragment", "Setting up spinner with selected category ID: " + selectedCategoryId);
+        }
+
         Cursor cursor = dbReadable.rawQuery(
                 "SELECT " + DatabaseContext.CATEGORY_ID_COL + ", " + DatabaseContext.NAME +
                         " FROM " + DatabaseContext.CATEGORIES_TABLE +
@@ -143,6 +158,7 @@ public class BudgetFragment extends Fragment {
 
         int selectedPosition = 0;
         boolean foundSelectedCategory = false;
+
         if (cursor.moveToFirst()) {
             int index = 0;
             do {
@@ -159,6 +175,8 @@ public class BudgetFragment extends Fragment {
                 if (categoryId == selectedCategoryId) {
                     selectedPosition = index;
                     foundSelectedCategory = true;
+                    Log.d("BudgetFragment", "Found matching category: " + displayName +
+                            " at position: " + index + " with ID: " + categoryId);
                 }
                 index++;
             } while (cursor.moveToNext());
@@ -183,11 +201,18 @@ public class BudgetFragment extends Fragment {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
-        // Only set selection if we found the category or if it's a new budget
-        if (foundSelectedCategory || selectedCategoryId == -1) {
+        // Set the selected position
+        if (foundSelectedCategory) {
+            Log.d("BudgetFragment", "Setting spinner selection to position: " + selectedPosition);
             spinnerCategory.setSelection(selectedPosition);
-        } else if (savedCategoryPosition < adapter.getCount()) {
+        } else if (editCategoryId == -1 && savedCategoryPosition < adapter.getCount()) {
+            // Only use saved position for new budget, not for editing
             spinnerCategory.setSelection(savedCategoryPosition);
+        } else {
+            // If we're editing but couldn't find the category, log an error
+            if (selectedCategoryId > 0) {
+                Log.e("BudgetFragment", "Could not find category with ID: " + selectedCategoryId);
+            }
         }
     }
 
@@ -295,12 +320,5 @@ public class BudgetFragment extends Fragment {
             Toast.makeText(requireActivity(), "Error saving budget", Toast.LENGTH_SHORT).show();
             Log.e("BudgetFragment", "Save failed for user: " + userId);
         }
-    }
-
-    private void clearInputs() {
-        etDescription.setText("");
-        etAmount.setText("");
-        etDate.setText("");
-        // Removed spinner reset to preserve category selection
     }
 }
