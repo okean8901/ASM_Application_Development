@@ -42,6 +42,7 @@ public class ExpensesFragment extends Fragment {
     private int userId = 1;
     private Map<String, Integer> categoryMap;
     private long expenseId = -1;
+    private int editCategoryId = -1; // Store the category ID for editing
     private int savedCategoryPosition = 0;
 
     public ExpensesFragment() {
@@ -68,13 +69,23 @@ public class ExpensesFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new DatabaseContext(requireActivity());
+
+        // Get arguments for editing
+        Bundle args = getArguments();
+        if (args != null) {
+            expenseId = args.getLong("expenseId", -1);
+            editCategoryId = args.getInt("categoryId", -1);
+        }
+
         if (savedInstanceState != null) {
             savedCategoryPosition = savedInstanceState.getInt("savedCategoryPosition", 0);
+            expenseId = savedInstanceState.getLong("expenseId", -1);
+            editCategoryId = savedInstanceState.getInt("editCategoryId", -1);
         }
     }
 
     private void refreshCategories() {
-        setupCategorySpinner(-1);
+        setupCategorySpinner(editCategoryId);
         loadRemainingBudget();
     }
 
@@ -99,11 +110,11 @@ public class ExpensesFragment extends Fragment {
             etDescription.setText(args.getString("description", ""));
             etAmount.setText(String.valueOf(args.getDouble("amount", 0.0)));
             etDate.setText(args.getString("date", ""));
-            int categoryId = args.getInt("categoryId", -1);
-            setupCategorySpinner(categoryId);
-        } else {
-            setupCategorySpinner(-1);
+            editCategoryId = args.getInt("categoryId", -1);
         }
+
+        // Setup spinner with the correct category ID
+        setupCategorySpinner(editCategoryId);
 
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, bundle) -> {
             if (isVisible()) {
@@ -116,7 +127,7 @@ public class ExpensesFragment extends Fragment {
 
         getParentFragmentManager().setFragmentResultListener("category_update", this, (requestKey, result) -> {
             if (result.getBoolean("category_updated", false)) {
-                setupCategorySpinner(-1);
+                setupCategorySpinner(editCategoryId);
                 loadRemainingBudget();
             }
         });
@@ -137,16 +148,15 @@ public class ExpensesFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadRemainingBudget();
-        setupCategorySpinner(-1);
         refreshCategories();
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (spinnerCategory != null) {
-            outState.putInt("savedCategoryPosition", spinnerCategory.getSelectedItemPosition());
-        }
+        outState.putInt("savedCategoryPosition", spinnerCategory.getSelectedItemPosition());
+        outState.putLong("expenseId", expenseId);
+        outState.putInt("editCategoryId", editCategoryId);
     }
 
     private void loadRemainingBudget() {
@@ -255,6 +265,7 @@ public class ExpensesFragment extends Fragment {
 
         int selectedPosition = 0;
         boolean foundSelectedCategory = false;
+
         if (cursor.moveToFirst()) {
             int index = 0;
             do {
@@ -290,10 +301,11 @@ public class ExpensesFragment extends Fragment {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
-        // Only set selection if we found the category or if it's a new expense
-        if (foundSelectedCategory || selectedCategoryId == -1) {
+        // Set the selected position
+        if (foundSelectedCategory) {
             spinnerCategory.setSelection(selectedPosition);
-        } else if (savedCategoryPosition < adapter.getCount()) {
+        } else if (editCategoryId == -1 && savedCategoryPosition < adapter.getCount()) {
+            // Only use saved position for new expense, not for editing
             spinnerCategory.setSelection(savedCategoryPosition);
         }
 

@@ -735,4 +735,22 @@ public class DatabaseContext extends SQLiteOpenHelper {
         return displayName;
     }
 
+    public String getCategoryName(int categoryId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String name = null;
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + NAME +
+                        " FROM " + CATEGORIES_TABLE +
+                        " WHERE " + CATEGORY_ID_COL + " = ?",
+                new String[]{String.valueOf(categoryId)}
+        );
+
+        if (cursor.moveToFirst()) {
+            name = cursor.getString(0);
+        }
+        cursor.close();
+
+        return name;
+    }
 }

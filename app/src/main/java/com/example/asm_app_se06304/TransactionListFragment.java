@@ -60,30 +60,60 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
                 Toast.makeText(requireActivity(), "Invalid budget ID found", Toast.LENGTH_SHORT).show();
                 continue;
             }
+
+            // Get the category name for this budget
+            int categoryId = budget.getCategoryId();
+            String categoryName = getCategoryDisplayName(categoryId);
+
             transactions.add(new Transaction(
                     Long.parseLong(budgetId),
                     "Budget",
-                    budget.getDescription(),
+                    budget.getDescription() + " (" + categoryName + ")",
                     budget.getAmount(),
                     budget.getDate(),
-                    -1
+                    categoryId
             ));
         }
 
         // Load Expenses
         List<Expense> expenses = db.getAllExpenses(userId);
         for (Expense expense : expenses) {
+            // Get the category name for this expense
+            int categoryId = expense.getCategoryId();
+            String categoryName = getCategoryDisplayName(categoryId);
+
             transactions.add(new Transaction(
                     expense.getId(),
                     "Expense",
-                    expense.getDescription(),
+                    expense.getDescription() + " (" + categoryName + ")",
                     expense.getAmount(),
                     expense.getDate(),
-                    expense.getCategoryId()
+                    categoryId
             ));
         }
 
         adapter.notifyDataSetChanged();
+    }
+
+    private String getCategoryDisplayName(int categoryId) {
+        if (categoryId <= 0) {
+            return "Uncategorized";
+        }
+
+        // Get the full category name from the database
+        String fullName = db.getCategoryName(categoryId);
+
+        // Extract the display name by removing the prefix
+        if (fullName != null) {
+            if (fullName.startsWith("Income_")) {
+                return fullName.substring("Income_".length());
+            } else if (fullName.startsWith("Expense_")) {
+                return fullName.substring("Expense_".length());
+            }
+            return fullName;
+        }
+
+        return "Unknown";
     }
 
     @Override
@@ -91,7 +121,7 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
         if (transaction.getType().equals("Budget")) {
             BudgetFragment fragment = BudgetFragment.newInstance(
                     transaction.getId(),
-                    transaction.getDescription(),
+                    transaction.getDescription().replaceAll(" \\(.*\\)$", ""), // Remove category name from description
                     transaction.getAmount(),
                     transaction.getDate(),
                     transaction.getCategoryId()
@@ -100,6 +130,9 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
             // Set up a result listener for when the BudgetFragment finishes editing
             getParentFragmentManager().setFragmentResultListener("budget_edit_result", this, (requestKey, bundle) -> {
                 if (bundle.getBoolean("budget_updated", false)) {
+                    // Reload transactions after update
+                    loadTransactions();
+
                     // Notify HomeFragment that a transaction was edited
                     Bundle result = new Bundle();
                     result.putBoolean("transaction_updated", true);
@@ -115,7 +148,7 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
         } else if (transaction.getType().equals("Expense")) {
             ExpensesFragment fragment = ExpensesFragment.newInstance(
                     transaction.getId(),
-                    transaction.getDescription(),
+                    transaction.getDescription().replaceAll(" \\(.*\\)$", ""), // Remove category name from description
                     transaction.getAmount(),
                     transaction.getDate(),
                     transaction.getCategoryId()
@@ -124,6 +157,9 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
             // Set up a result listener for when the ExpensesFragment finishes editing
             getParentFragmentManager().setFragmentResultListener("expense_edit_result", this, (requestKey, bundle) -> {
                 if (bundle.getBoolean("expense_updated", false)) {
+                    // Reload transactions after update
+                    loadTransactions();
+
                     // Notify HomeFragment that a transaction was edited
                     Bundle result = new Bundle();
                     result.putBoolean("transaction_updated", true);
@@ -147,7 +183,7 @@ public class TransactionListFragment extends Fragment implements TransactionAdap
 
             if (hasMatchingExpenses) {
                 // Get display name for the alert
-                String displayName = db.getCategoryDisplayName(transaction.getCategoryId());
+                String displayName = getCategoryDisplayName(transaction.getCategoryId());
 
                 new AlertDialog.Builder(requireActivity())
                         .setTitle("Cannot Delete Budget")
